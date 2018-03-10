@@ -1,0 +1,10 @@
+## Interface: 70300
+## Author: jukx
+## Notes: layout for oUF
+## Title: oUF Dyke
+## Notes: Working Title
+## Version: 0.0
+## Dependencies: oUF, LibSharedMedia-3.0, SharedMedia
+
+helpers.lua
+ouf_dyke.lua

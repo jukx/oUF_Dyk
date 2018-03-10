@@ -1,0 +1,403 @@
+--[[
+--
+-- oUF Dyke (working title)
+--
+-- TODO:
+--  - test all classes
+--  - make rune power and balance druid resources work
+--  - flesh out castbar (latency, other place/size...)
+--  - use infoborder for something
+--  - party frames
+--  - nameplates
+--  - maybe: buffs
+--  - refactor a bit, remove magic numbers
+--  - clean up the LibSharedMedia part
+--  - ClassColors (addon) support http://www.wowinterface.com/downloads/info12513-ClassColors.html
+--]]
+
+--get addon data
+local addonName, addonTable = ...  
+local helpers = addonTable.helpers
+
+-- config
+-- coordinates for spawning
+local coordMainHealthX = -60
+local coordMainHealthY = -120
+
+
+local LSM = LibStub('LibSharedMedia-3.0')
+LSM:Register('font', 'Roboto', [[Interface\AddOns\ouf_dyke\fonts\roboto-medium.ttf]])
+LSM:Register('statusbar', 'dyke', "Interface\\AddOns\\ouf_dyke\\textures\\statusbar")
+LSM:Register('border', 'dyke', "Interface\\AddOns\\ouf_dyke\\textures\\border")
+LSM:Register('border', 'dykeCool', "Interface\\AddOns\\ouf_dyke\\textures\\coolborder")
+LSM:Register('border', 'dykeIShadow', "Interface\\AddOns\\ouf_dyke\\textures\\inner_shadow")
+
+local defaultBartex = LSM:Fetch('statusbar', 'dyke')
+local defaultBordertex = LSM:Fetch('border', 'dyke')
+local innerShadowTexture = LSM:Fetch('border', 'dykeIShadow')
+local defaultFont = LSM:Fetch('font', 'Roboto')
+local padding = 7
+
+local defaultBarColor = {36, 35, 33}
+local dykeColors = {
+    power = {
+        ["MANA"] = { r = 36/255, g = 110/255, b = 229/255 };
+    }
+}
+-- end config
+
+--
+-- Custom oUF Tags
+-- 
+local function getStatus(unit)
+	if(not UnitIsConnected(unit)) then
+		return 'Offline'
+	elseif(UnitIsGhost(unit)) then
+		return 'Ghost'
+	elseif(UnitIsDead(unit)) then
+		return 'Dead'
+	end
+end
+
+local function condenseNumber(value)
+	if value >= 1e6 then
+		--return gsub(format('%.2fm', value / 1e6), '%.?0+([km])$', '%1')
+		return format('%.2fm', value / 1e6)
+    elseif value >= 1e4 then
+		return format('%.1fk', value / 1e3)
+	else
+		return value
+	end
+end
+
+local function registerTag(tagname, events, func)
+    oUF.Tags.Methods[tagname] = func
+    oUF.Tags.Events[tagname] = events
+end
+
+registerTag('dyke:status',  
+            'UNIT_HEALTH PLAYER_UPDATE_RESTING UNIT_CONNECTION',
+            function(unit)
+                return getStatus(unit)
+            end
+    )
+
+registerTag('dyke:perhp',  
+            'UNIT_HEALTH_FREQUENT UNIT_MAXHEALTH',
+            function(unit)
+                local curhp = UnitHealth(unit)
+                local maxhp = UnitHealthMax(unit)
+                if getStatus(unit) or curhp == maxhp then return end
+                perc = 100 * curhp / maxhp
+                return  format("%.0f%%", helpers.round(perc))
+            end
+    )
+
+registerTag('dyke:maxhp',  
+            'UNIT_HEALTH_FREQUENT UNIT_MAXHEALTH',
+            function(unit)
+                if getStatus(unit) then return end
+                local maxhp = UnitHealthMax(unit)
+                if UnitHealth(unit) ~= maxhp then
+                    return condenseNumber(maxhp)
+                end
+            end
+    )
+
+registerTag('dyke:curhp',  
+            'UNIT_HEALTH_FREQUENT UNIT_MAXHEALTH',
+            function(unit)
+                local curhp = UnitHealth(unit)
+                local maxhp = UnitHealthMax(unit)
+                if getStatus(unit) or curhp == maxhp then return end
+                return condenseNumber(curhp)
+            end
+    )
+
+
+--
+-- Functions
+--
+-- Style functions
+
+local function normalizeColors(tuple)
+    for i=1,3 do
+        tuple[i] = tuple[i]/255 
+    end
+    return tuple
+end
+
+local function addBorder(frame, thickness, color, texture)
+    if color then color = normalizeColors(color) else color = {0, 0, 0} end
+    local border = CreateFrame("Frame", nil, frame)
+    local backdrop = {
+        edgeFile = texture or defaultBordertex,
+        edgeSize = thickness,
+        insets = { left=thickness, right=thickness, top=thickness, right=thickness }
+    }
+
+    local framelevel = math.max(0, (frame:GetFrameLevel()-1 or 0))
+    border:SetFrameLevel(framelevel)
+    border:SetPoint("TOPLEFT", frame, "TOPLEFT", -thickness, thickness)
+    border:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", thickness, -thickness)
+    border:SetBackdrop(backdrop)
+    border:SetBackdropBorderColor(unpack(color))
+
+    return border
+end
+
+local function addMainBorder(frame, borderColor)
+    border2 = addBorder(border1, 1, borderColor or {100, 100, 100}) 
+    border3 = addBorder(border2, 1)
+    frame.InfoBorder = border2
+    frame.setInfoBorderColor = function(self, color)
+        if color then color = normalizeColors(color) else color = {0, 0, 0} end
+        self.InfoBorder:SetBackdropBorderColor(unpack(color))
+    end
+end
+
+local function addInnerShadow(frame, width)
+    local shadow = CreateFrame("Frame", nil, frame)
+    local backdrop = {
+        edgeFile = innerShadowTexture,
+        edgeSize = width or 16,
+    }
+
+    shadow:SetPoint("TOPLEFT", frame, "TOPLEFT")
+    shadow:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+    shadow:SetBackdrop(backdrop)
+
+    return shadow
+end
+
+function setInfoBorderColorByThreat(frame) 
+    if(UnitDetailedThreatSituation("player", frame.unit)) then
+        frame:setInfoBorderColor({255, 0, 0})
+    else
+        frame:setInfoBorderColor({100, 100, 100})
+    end
+end
+
+local function CreateStatusBar(self, color, bgColor, borderColor, drawShadow, shadowWidth)
+    -- color - rgb triple of values ranging from 0 - 255 
+    if color then color = normalizeColors(color) end
+    if bgColor then bgColor = normalizeColors(bgColor) end
+        
+    if not bartex then
+        bartex = defaultBartex
+    end
+
+    local bar = CreateFrame("StatusBar", nil, self)      
+    bar:SetStatusBarTexture(bartex)
+    bar:SetStatusBarColor(unpack(color))
+
+    if bgColor then
+        local bg = bar:CreateTexture(nil, "BACKGROUND")
+        bg:SetColorTexture(unpack(bgColor))
+        bg:SetAllPoints()
+        bar.bg = bg 
+    end
+
+    border1 = addBorder(bar, 1)
+
+    if drawShadow then
+        addInnerShadow(bar, shadowWidth)
+    end
+
+    return bar
+end
+
+-- Create Text
+local function createText(frame,font,size,align,outline)
+    textframe = CreateFrame("Frame", nil, frame)
+    textframe:SetAllPoints()
+    local text = textframe:CreateFontString(nil, "ARTWORK") --"BORDER", "OVERLAY"
+
+    if outline then
+        outline = "THICKOUTLINE"
+    else
+        outline = nil
+    end
+    text:SetFont(font or defaultFont, size or 14, outline)
+    text:SetJustifyH(align or "LEFT")
+    return text
+end
+
+local function getBarBgColor(unit)
+    local _, class = UnitClass(unit) 
+    local color = oUF.colors.class[class] 
+    if color then
+        color = helpers.multVec(color, 255)
+    else
+        color = {0, 255, 0}
+    end
+    color[4] = 0.8
+
+    return color
+end
+
+--
+-- Creation Functions
+--
+
+-- Create health statusbar func
+local function CreateHealthBar(frame, unit) 
+    local barColor = helpers.table_clone(defaultBarColor)
+    local bgColor = getBarBgColor(unit)
+    local health = CreateStatusBar(frame, barColor, bgColor, nil, true)
+    health:SetAllPoints()
+    health.UpdateColor = updateHealthColor
+    return health 
+end
+
+-- Create Health Text
+local function CreateHealthText(frame)
+    local text = createText(frame.Health, nil, nil)
+
+    text:SetPoint("CENTER", frame.Health, "CENTER")
+    frame:Tag(text, '[dyke:status][dyke:curhp][ >dyke:perhp]')
+end
+
+-- Create Health Text
+local function CreateNameText(frame)
+    local text = createText(frame.Health, nil, nil)
+
+    text:SetPoint("TOPLEFT", frame.Health, "TOPLEFT", 2, -2)
+    frame:Tag(text, '[name]')
+end
+
+--create power statusbar func
+local function CreatePowerBar(frame, unit)
+    local height = 12
+    local width = 240
+    local powerToken
+
+    _, powerToken = UnitPowerType(unit);
+    local color = dykeColors.power[powerToken] or PowerBarColor[powerToken]
+    for _, key in pairs({'r', 'g', 'b'}) do 
+        color[key] = color[key] * 255 
+        color[key] = color[key] * 0.8 
+    end
+
+    local power = CreateStatusBar(frame, {color['r'], color['g'], color['b']}, {0, 0, 0, 0.5}, nil, true, 4)
+    power:SetPoint("TOPLEFT", nil, "CENTER", -width/2, coordMainHealthY + padding + height)
+    power:SetPoint("BOTTOMRIGHT", nil, "CENTER", width/2, coordMainHealthY + padding)
+
+    return power
+end
+
+-- Create Power Text
+local function CreatePowerText(frame)
+    local text = createText(frame.Power, nil, 14)
+
+    text:SetPoint("CENTER", frame.Power, "CENTER")
+    frame:Tag(text, '[perpp<%]')
+end
+
+function tablelength(T)
+  local count = 0
+  for _ in pairs(T) do count = count + 1 end
+  return count
+end
+
+--create secondary power statusbar func
+local function CreateClassPower(frame)
+		ClassPower = {}
+        --ClassPower.UpdateColor = function() end
+
+		for index = 1, 11 do -- have to create an extra to force __max to be different from UnitPowerMax
+            local bar = CreateStatusBar(frame, {255, 255, 255}, {0, 0, 0, 0.5})
+
+            singletonWidth = (frame.Power:GetWidth() - 4) / 5  -- make ClassPowerBar 1/5 the width of the Power Bar... is this correct for something else than rogues/locks?
+            bar:SetHeight(15)
+            bar:SetWidth(singletonWidth)
+
+			if(index > 1) then
+				bar:SetPoint('LEFT', ClassPower[index - 1], 'RIGHT', 1, 0)
+			else
+				bar:SetPoint('BOTTOMLEFT', frame.Power, 'TOPLEFT', 0, 1)
+			end
+
+			if(index > 5) then
+				bar:SetFrameLevel(bar:GetFrameLevel() + 1)
+			end
+
+			ClassPower[index] = bar
+		end
+        return ClassPower
+end
+
+-- Create cast bar
+local function CreateCastBar(frame)
+    local height = 20
+    --local width = 140
+    
+    local castbar = CreateStatusBar(frame, {184, 150, 0}, {0, 0, 0, 0.5})
+    castbar:SetPoint("TOPLEFT", nil, "CENTER", coordMainHealthX + padding, coordMainHealthY)
+    castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", -coordMainHealthX - padding, coordMainHealthY - height)
+
+    return castbar
+end
+
+local function CreateCastBarText(frame)
+    local text = createText(frame.Castbar)
+
+    text:SetPoint("CENTER", frame.Castbar, "CENTER")
+    frame.Castbar.Text = text
+end
+
+--
+-- Update functions
+--
+
+function updateHealthColor (self, unit, cur, max) 
+    local bgColor
+    if unit == 'player' then
+        local perc = cur / max
+        local c1 = {255, 0, 0}
+        local c2 = {226, 209, 124}
+        bgColor = helpers.addVec(helpers.multVec(c2, perc), helpers.multVec(c1, 1 - perc))  -- TODO describe what this does 
+    elseif unit == 'target' then
+        bgColor = getBarBgColor(unit)
+    end
+
+    bgColor[4] = 0.8
+    bgColor = normalizeColors(bgColor)
+    self.bg:SetColorTexture(unpack(bgColor))
+end
+
+
+-- Create Style
+local function StyleFunc(frame, unit) 
+    frame:SetSize(200,60) 
+	frame:RegisterForClicks('AnyUp')  -- to enable rightclick menu
+
+    frame.Health = CreateHealthBar(frame, unit)
+    CreateHealthText(frame)
+    CreateNameText(frame)
+    addMainBorder(frame)
+
+    if unit == 'player' then
+        frame.Power = CreatePowerBar(frame, unit)
+        frame.PowerText = CreatePowerText(frame)
+        frame.ClassPower = CreateClassPower(frame)
+        frame.Castbar = CreateCastBar(frame)
+        frame.CastbarText = CreateCastBarText(frame)
+    elseif unit == 'target' then
+        function threatHandler(frame, event, unit)
+            setInfoBorderColorByThreat(frame)
+        end
+        frame:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE", threatHandler)
+        frame:RegisterEvent("UNIT_THREAT_LIST_UPDATE", threatHandler) 
+		frame:RegisterEvent('PLAYER_TARGET_CHANGED', threatHandler, unitless)
+    end
+end
+
+--register style
+oUF:RegisterStyle(addonName.."style", StyleFunc)
+
+oUF:Factory(function(self)
+    self:SetActiveStyle(addonName.."style") 
+    self:Spawn("player", addonName.."PlayerFrame"):SetPoint("TOPRIGHT", nil, "CENTER", coordMainHealthX, coordMainHealthY) 
+    self:Spawn("target", addonName.."TargetFrame"):SetPoint("TOPLEFT", nil, "CENTER", -coordMainHealthX, coordMainHealthY)
+end)
