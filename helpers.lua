@@ -37,7 +37,7 @@ end
 addon.helpers.table_clone = table_clone
 
 addon.helpers.multVec = function(vec, multiplicator)
-    -- multiplies two vectors (arrays containing only numbers)
+    -- multiplies a vector (arrays containing only numbers) with a scalar 
     for i, val in pairs(vec) do
         vec[i] = val * multiplicator 
     end
