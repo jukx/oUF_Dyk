@@ -231,11 +231,12 @@ local function createText(frame,font,size,align,outline)
 end
 
 local function getBarBgColor(unit)
+    local color
     if UnitPlayerControlled(unit) then
         local _, class = UnitClass(unit) 
-        local color = oUF.colors.class[class] 
+        color = oUF.colors.class[class] 
     else
-        local color = {0.5, 0.5, 0.5}
+        color = {0.5, 0.5, 0.5}
     end 
 
     if color then
