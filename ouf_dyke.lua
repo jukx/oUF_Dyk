@@ -17,12 +17,12 @@
 --  A note about color values:
 --    Throughout this addon, color values are used as (unkeyed!) tables {r, g, b[, a]}.
 --    When they are explicitly declared, they are written in the rgb-255 form,
---    but changed to Blizzard's rgb-1 form through normalizeColors() (right before being passed to built-in API functions.
+--    but changed to Blizzard's rgb-1 form through normalizeColors() (right before being passed to API functions.
 --    TODO: refactor this
 --]]
 
 --get addon data
-local addonName, addon = ...  
+local addonName, addon = ...
 local helpers = addon.helpers
 
 -- config
@@ -51,7 +51,7 @@ local dykeColors = {
 
 --
 -- Custom oUF Tags
--- 
+--
 local function getStatus(unit)
 	if(not UnitIsConnected(unit)) then
 		return 'Offline'
@@ -92,7 +92,7 @@ registerTag('dyke:perhp',
                 local curhp = UnitHealth(unit)
                 local maxhp = UnitHealthMax(unit)
                 if unit == 'player' and (getStatus(unit) or curhp == maxhp) then return end
-                perc = 100 * curhp / maxhp
+                local perc = 100 * curhp / maxhp
                 return  format("%.0f%%", helpers.round(perc))
             end
     )
@@ -139,7 +139,7 @@ local function addBorder(frame, thickness, color, texture)
     local backdrop = {
         edgeFile = texture or defaultBordertex,
         edgeSize = thickness,
-        insets = { left=thickness, right=thickness, top=thickness, right=thickness }
+        insets = { left=thickness, right=thickness, top=thickness, bottom=thickness }
     }
 
     local framelevel = math.max(0, (frame:GetFrameLevel()-1 or 0))
@@ -177,7 +177,7 @@ local function addInnerShadow(frame, width)
     return shadow
 end
 
-function setInfoBorderColorByThreat(frame) 
+local function setInfoBorderColorByThreat(frame) 
     if(UnitDetailedThreatSituation("player", frame.unit)) then
         frame:setInfoBorderColor({255, 0, 0})
     else
@@ -411,11 +411,11 @@ end
 -- Event handlers
 --
 
-function threatHandler(frame, event, unit)
+local function threatHandler(frame)
     setInfoBorderColorByThreat(frame)
 end
 
-function powerBarHandler(frame, event, unit)
+local function powerBarHandler(frame)
     updatePowerBarVisibility(frame)
 end
 
@@ -437,11 +437,10 @@ local function StyleFunc(frame, unit)
     elseif unit == 'target' then
         frame.Health = CreateHealthBar(frame, unit)
         frame.Power = CreatePowerBar(frame, unit)
-        updatePowerBarVisibility(frame)
 
         frame:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE", threatHandler)
         frame:RegisterEvent("UNIT_THREAT_LIST_UPDATE", threatHandler) 
-		frame:RegisterEvent('PLAYER_TARGET_CHANGED', threatHandler, unitless)
+		frame:RegisterEvent('PLAYER_TARGET_CHANGED', threatHandler)
         frame:RegisterEvent('UNIT_TARGET')
         frame:HookScript("OnEvent", powerBarHandler)
     end
