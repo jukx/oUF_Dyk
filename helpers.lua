@@ -5,7 +5,7 @@ local _, addon = ...
 --
 addon.helpers = {}
 
-addon.helpers.print_r = function(t, indent, done)  -- TODO: delete
+function print_r(t, indent, done)  -- TODO: delete
   done = done or {}
   indent = indent or ''
   local nextIndent -- Storage for next indentation value
@@ -24,10 +24,17 @@ addon.helpers.print_r = function(t, indent, done)  -- TODO: delete
     end
   end
 end
+addon.helpers.print_r = print_r
 
-addon.helpers.table_clone = function(table)
-    return {unpack(table)}
+function table_clone(table)
+    newtable = {}
+
+    for k,v in pairs(table) do
+        newtable[k] = v
+    end
+    return newtable
 end
+addon.helpers.table_clone = table_clone
 
 addon.helpers.multVec = function(vec, multiplicator)
     -- multiplies two vectors (arrays containing only numbers)

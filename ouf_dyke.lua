@@ -11,32 +11,35 @@
 --  - nameplates
 --  - maybe: buffs
 --  - refactor a bit, remove magic numbers
---  - clean up the LibSharedMedia part
---  - ClassColors (addon) support http://www.wowinterface.com/downloads/info12513-ClassColors.html
+--  - target castbar
+--  - target health bg color by reaction
+--
+--  A note about color values:
+--    Throughout this addon, color values are used as (unkeyed!) tables {r, g, b[, a]}.
+--    When they are explicitly declared, they are written in the rgb-255 form,
+--    but changed to Blizzard's rgb-1 form through normalizeColors() (right before being passed to built-in API functions.
+--    TODO: refactor this
 --]]
 
 --get addon data
-local addonName, addonTable = ...  
-local helpers = addonTable.helpers
+local addonName, addon = ...  
+local helpers = addon.helpers
 
 -- config
 -- coordinates for spawning
-local coordMainHealthX = -60
+local coordMainHealthX = -90
 local coordMainHealthY = -120
 
+local defaultBartex = [[Interface\AddOns\ouf_dyke\textures\statusbar]]
+local defaultBordertex =  [[Interface\AddOns\ouf_dyke\textures\border]]
+local innerShadowTexture =  [[Interface\AddOns\ouf_dyke\textures\inner_shadow]]
+local defaultFont = [[Interface\AddOns\ouf_dyke\fonts\roboto-medium.ttf]]
 
-local LSM = LibStub('LibSharedMedia-3.0')
-LSM:Register('font', 'Roboto', [[Interface\AddOns\ouf_dyke\fonts\roboto-medium.ttf]])
-LSM:Register('statusbar', 'dyke', "Interface\\AddOns\\ouf_dyke\\textures\\statusbar")
-LSM:Register('border', 'dyke', "Interface\\AddOns\\ouf_dyke\\textures\\border")
-LSM:Register('border', 'dykeCool', "Interface\\AddOns\\ouf_dyke\\textures\\coolborder")
-LSM:Register('border', 'dykeIShadow', "Interface\\AddOns\\ouf_dyke\\textures\\inner_shadow")
-
-local defaultBartex = LSM:Fetch('statusbar', 'dyke')
-local defaultBordertex = LSM:Fetch('border', 'dyke')
-local innerShadowTexture = LSM:Fetch('border', 'dykeIShadow')
-local defaultFont = LSM:Fetch('font', 'Roboto')
 local padding = 7
+local outlineWidth = 1
+local powerBarWidth = 240
+local powerBarHeight = 10
+
 
 local defaultBarColor = {36, 35, 33}
 local dykeColors = {
@@ -60,8 +63,9 @@ local function getStatus(unit)
 end
 
 local function condenseNumber(value)
-	if value >= 1e6 then
-		--return gsub(format('%.2fm', value / 1e6), '%.?0+([km])$', '%1')
+	if value >= 1e9 then
+		return format('%.2fb', value / 1e9)
+	elseif value >= 1e6 then
 		return format('%.2fm', value / 1e6)
     elseif value >= 1e4 then
 		return format('%.1fk', value / 1e3)
@@ -87,7 +91,7 @@ registerTag('dyke:perhp',
             function(unit)
                 local curhp = UnitHealth(unit)
                 local maxhp = UnitHealthMax(unit)
-                if getStatus(unit) or curhp == maxhp then return end
+                if unit == 'player' and (getStatus(unit) or curhp == maxhp) then return end
                 perc = 100 * curhp / maxhp
                 return  format("%.0f%%", helpers.round(perc))
             end
@@ -109,7 +113,7 @@ registerTag('dyke:curhp',
             function(unit)
                 local curhp = UnitHealth(unit)
                 local maxhp = UnitHealthMax(unit)
-                if getStatus(unit) or curhp == maxhp then return end
+                if unit == 'player' and (getStatus(unit) or curhp == maxhp) then return end
                 return condenseNumber(curhp)
             end
     )
@@ -118,12 +122,14 @@ registerTag('dyke:curhp',
 --
 -- Functions
 --
+
 -- Style functions
 
 local function normalizeColors(tuple)
     for i=1,3 do
         tuple[i] = tuple[i]/255 
     end
+
     return tuple
 end
 
@@ -147,6 +153,7 @@ local function addBorder(frame, thickness, color, texture)
 end
 
 local function addMainBorder(frame, borderColor)
+    border1 = addBorder(frame, 1)
     border2 = addBorder(border1, 1, borderColor or {100, 100, 100}) 
     border3 = addBorder(border2, 1)
     frame.InfoBorder = border2
@@ -198,7 +205,7 @@ local function CreateStatusBar(self, color, bgColor, borderColor, drawShadow, sh
         bar.bg = bg 
     end
 
-    border1 = addBorder(bar, 1)
+    addBorder(bar, outlineWidth)  -- add outline to any statusbar
 
     if drawShadow then
         addInnerShadow(bar, shadowWidth)
@@ -224,8 +231,13 @@ local function createText(frame,font,size,align,outline)
 end
 
 local function getBarBgColor(unit)
-    local _, class = UnitClass(unit) 
-    local color = oUF.colors.class[class] 
+    if UnitPlayerControlled(unit) then
+        local _, class = UnitClass(unit) 
+        local color = oUF.colors.class[class] 
+    else
+        local color = {0.5, 0.5, 0.5}
+    end 
+
     if color then
         color = helpers.multVec(color, 255)
     else
@@ -236,16 +248,35 @@ local function getBarBgColor(unit)
     return color
 end
 
+local function getPowerBarColor(unit)
+    local powerToken
+    local color = {}
+    _, powerToken = UnitPowerType(unit);
+    powerToken = powerToken or 'MANA' 
+    local color_ = dykeColors.power[powerToken] or PowerBarColor[powerToken]
+
+    -- change color table from keyed by letter to keyed by index
+    for i, key in pairs({'r', 'g', 'b'}) do 
+        color[i] = color_[key] * 255 
+        color[i] = color_[key] * 0.8 
+    end
+
+    return color
+end
+
 --
 -- Creation Functions
 --
 
 -- Create health statusbar func
-local function CreateHealthBar(frame, unit) 
+local function CreateHealthBar(frame, unit, height) 
     local barColor = helpers.table_clone(defaultBarColor)
     local bgColor = getBarBgColor(unit)
     local health = CreateStatusBar(frame, barColor, bgColor, nil, true)
     health:SetAllPoints()
+    if height then
+        health:SetPoint('BOTTOMRIGHT', frame, 'TOPRIGHT', 0, -height)
+    end
     health.UpdateColor = updateHealthColor
     return health 
 end
@@ -268,20 +299,12 @@ end
 
 --create power statusbar func
 local function CreatePowerBar(frame, unit)
-    local height = 12
-    local width = 240
-    local powerToken
+    local color = getPowerBarColor(unit)
 
-    _, powerToken = UnitPowerType(unit);
-    local color = dykeColors.power[powerToken] or PowerBarColor[powerToken]
-    for _, key in pairs({'r', 'g', 'b'}) do 
-        color[key] = color[key] * 255 
-        color[key] = color[key] * 0.8 
-    end
-
-    local power = CreateStatusBar(frame, {color['r'], color['g'], color['b']}, {0, 0, 0, 0.5}, nil, true, 4)
-    power:SetPoint("TOPLEFT", nil, "CENTER", -width/2, coordMainHealthY + padding + height)
-    power:SetPoint("BOTTOMRIGHT", nil, "CENTER", width/2, coordMainHealthY + padding)
+    local power = CreateStatusBar(frame, color, {0, 0, 0, 0.5}, nil, true, 4)
+    power:SetPoint("TOPLEFT", frame.Health, "BOTTOMLEFT", 0, -outlineWidth)
+    power:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+    power.UpdateColor = updatePowerColor
 
     return power
 end
@@ -300,7 +323,7 @@ function tablelength(T)
   return count
 end
 
---create secondary power statusbar func
+-- Create class power statusbar
 local function CreateClassPower(frame)
 		ClassPower = {}
         --ClassPower.UpdateColor = function() end
@@ -346,6 +369,7 @@ local function CreateCastBarText(frame)
     frame.Castbar.Text = text
 end
 
+
 --
 -- Update functions
 --
@@ -366,36 +390,70 @@ function updateHealthColor (self, unit, cur, max)
     self.bg:SetColorTexture(unpack(bgColor))
 end
 
+function updatePowerColor(self, unit) 
+    local color = getPowerBarColor(unit)
+    self:SetStatusBarColor(unpack(color))
+end 
+
+function updatePowerBarVisibility(frame) 
+    local unit = 'target'
+    if UnitPlayerControlled(unit) or UnitPowerType(unit) ~= 1 then
+        local ycoord = frame:GetHeight() - (powerBarHeight + outlineWidth)
+        frame.Health:SetPoint('BOTTOMRIGHT', frame, 'TOPRIGHT', 0, -ycoord)
+        frame.Power:Show()
+    else
+        frame.Health:SetPoint('BOTTOMRIGHT', frame, 'BOTTOMRIGHT')
+        frame.Power:Hide()
+    end
+end
+
+--
+-- Event handlers
+--
+
+function threatHandler(frame, event, unit)
+    setInfoBorderColorByThreat(frame)
+end
+
+function powerBarHandler(frame, event, unit)
+    updatePowerBarVisibility(frame)
+end
 
 -- Create Style
 local function StyleFunc(frame, unit) 
     frame:SetSize(200,60) 
 	frame:RegisterForClicks('AnyUp')  -- to enable rightclick menu
-
-    frame.Health = CreateHealthBar(frame, unit)
-    CreateHealthText(frame)
-    CreateNameText(frame)
-    addMainBorder(frame)
+    addMainBorder(frame) 
 
     if unit == 'player' then
+        frame.Health = CreateHealthBar(frame, unit)
         frame.Power = CreatePowerBar(frame, unit)
+        frame.Power:SetPoint("TOPLEFT", nil, "CENTER", -powerBarWidth/2, coordMainHealthY + padding + powerBarHeight)
+        frame.Power:SetPoint("BOTTOMRIGHT", nil, "CENTER", powerBarWidth/2, coordMainHealthY + padding)
         frame.PowerText = CreatePowerText(frame)
         frame.ClassPower = CreateClassPower(frame)
         frame.Castbar = CreateCastBar(frame)
         frame.CastbarText = CreateCastBarText(frame)
     elseif unit == 'target' then
-        function threatHandler(frame, event, unit)
-            setInfoBorderColorByThreat(frame)
-        end
+        frame.Health = CreateHealthBar(frame, unit)
+        frame.Power = CreatePowerBar(frame, unit)
+        updatePowerBarVisibility(frame)
+
         frame:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE", threatHandler)
         frame:RegisterEvent("UNIT_THREAT_LIST_UPDATE", threatHandler) 
 		frame:RegisterEvent('PLAYER_TARGET_CHANGED', threatHandler, unitless)
+        frame:RegisterEvent('UNIT_TARGET')
+        frame:HookScript("OnEvent", powerBarHandler)
     end
+
+    CreateHealthText(frame)
+    CreateNameText(frame)
 end
 
---register style
+-- Register style with oUF
 oUF:RegisterStyle(addonName.."style", StyleFunc)
 
+-- Set up oUF factory
 oUF:Factory(function(self)
     self:SetActiveStyle(addonName.."style") 
     self:Spawn("player", addonName.."PlayerFrame"):SetPoint("TOPRIGHT", nil, "CENTER", coordMainHealthX, coordMainHealthY) 

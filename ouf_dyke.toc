@@ -4,7 +4,7 @@
 ## Title: oUF Dyke
 ## Notes: Working Title
 ## Version: 0.0
-## Dependencies: oUF, LibSharedMedia-3.0, SharedMedia
+## Dependencies: oUF
 
 helpers.lua
 ouf_dyke.lua
