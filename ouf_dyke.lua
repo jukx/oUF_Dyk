@@ -38,8 +38,9 @@ local defaultFont = [[Interface\AddOns\ouf_dyke\fonts\roboto-medium.ttf]]
 local padding = 7
 local outlineWidth = 1
 local powerBarWidth = 240
-local powerBarHeight = 10
-
+local powerBarHeight = 10 
+local castbarHeight = 30
+local castbarWidth = 300
 
 local defaultBarColor = {36, 35, 33}
 local dykeColors = {
@@ -353,12 +354,7 @@ end
 
 -- Create cast bar
 local function CreateCastBar(frame)
-    local height = 20
-    --local width = 140
-    
-    local castbar = CreateStatusBar(frame, {184, 150, 0}, {0, 0, 0, 0.5})
-    castbar:SetPoint("TOPLEFT", nil, "CENTER", coordMainHealthX + padding, coordMainHealthY)
-    castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", -coordMainHealthX - padding, coordMainHealthY - height)
+    local castbar = CreateStatusBar(frame, {184, 150, 0}, {0, 0, 0, 0.5}, nil, true, 8)
 
     return castbar
 end
@@ -434,10 +430,16 @@ local function StyleFunc(frame, unit)
         frame.PowerText = CreatePowerText(frame)
         frame.ClassPower = CreateClassPower(frame)
         frame.Castbar = CreateCastBar(frame)
+        frame.Castbar:SetPoint("TOPLEFT", nil, "CENTER", coordMainHealthX + padding, coordMainHealthY)
+        frame.Castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", -coordMainHealthX - padding, coordMainHealthY - castbarHeight)
         frame.CastbarText = CreateCastBarText(frame)
     elseif unit == 'target' then
         frame.Health = CreateHealthBar(frame, unit)
         frame.Power = CreatePowerBar(frame, unit)
+        frame.Castbar = CreateCastBar(frame)
+        frame.Castbar:SetPoint("TOPLEFT", nil, "CENTER", -castbarWidth/2, 200 + castbarHeight)
+        frame.Castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", castbarWidth/2, 200)
+        frame.CastbarText = CreateCastBarText(frame)
 
         frame:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE", threatHandler)
         frame:RegisterEvent("UNIT_THREAT_LIST_UPDATE", threatHandler) 
