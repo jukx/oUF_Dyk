@@ -258,9 +258,15 @@ local function getPowerBarColor(unit)
     local color_ = dykeColors.power[powerToken] or PowerBarColor[powerToken]
 
     -- change color table from keyed by letter to keyed by index
-    for i, key in pairs({'r', 'g', 'b'}) do 
-        color[i] = color_[key] * 255 
-        color[i] = color_[key] * 0.8 
+    if color_ then
+        for i, key in pairs({'r', 'g', 'b'}) do 
+            color[i] = color_[key] * 255 
+            color[i] = color_[key] * 0.8 
+        end
+    else
+        print("Error:")
+        print("Target:", unit)
+        print("Power:", powerToken)
     end
 
     return color
