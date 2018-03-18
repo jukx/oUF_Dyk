@@ -34,7 +34,7 @@ local innerShadowTexture =  [[Interface\AddOns\ouf_dyke\textures\inner_shadow]]
 local defaultFont = [[Interface\AddOns\ouf_dyke\fonts\roboto-medium.ttf]]
 
 -- Measures
-local framesize = {200, 60}
+local frameSize = {200, 60}
 local padding = 7  -- between frames
 local outlineWidth = 1
 
@@ -148,10 +148,11 @@ registerTag('dyke:curhp',
 -- Style functions
 
 local function getColor(color)
-    newColor = []
+    newColor = {}
     for i=1,3 do
         newColor[i] = color[i]/255 
     end
+    if color[4] then newColor[4] = color[4] end  -- alpha channel
 
     return newColor
 end
@@ -178,7 +179,7 @@ end
 
 local function addMainBorder(frame, borderColor)
     border1 = addBorder(frame, 1)
-    border2 = addBorder(border1, 1, getColor(borderColor) or getColor(defaultInfoBorderColor)) 
+    border2 = addBorder(border1, 1, borderColor or getColor(defaultInfoBorderColor)) 
     border3 = addBorder(border2, 1)
     frame.InfoBorder = border2
     frame.setInfoBorderColor = function(self, color)
