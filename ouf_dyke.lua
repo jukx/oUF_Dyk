@@ -342,37 +342,32 @@ local function CreatePowerText(frame)
     frame:Tag(text, '[perpp<%]')
 end
 
-function tablelength(T)
+local function tablelength(T)
   local count = 0
   for _ in pairs(T) do count = count + 1 end
   return count
 end
 
 -- Create class power statusbar
-local function CreateClassPower(frame)
-		ClassPower = {}
+local function CreateClassPower(frame, maxClasspower)
+		local classPower = {} 
+        local maxClasspower = maxClasspower or 5  -- make ClassPowerBar 1/5 the width of the Power Bar... is this correct for something else than rogues/locks?  
+        local singletonWidth = math.floor((powerBarWidth - (maxClasspower - 1)) / maxClasspower)
 
-		for index = 1, 11 do -- have to create an extra to force __max to be different from UnitPowerMax
+		for index = 1, maxClasspower do -- have to create an extra to force __max to be different from UnitPowerMax
             local bar = CreateStatusBar(frame, getColor(defaultBaseClassPowerColor), getColor(defaultClassPowerBarBgColor))
 
-            local maxClasspower = 5  -- make ClassPowerBar 1/5 the width of the Power Bar... is this correct for something else than rogues/locks?
-            singletonWidth = (frame.Power:GetWidth() - 4) / maxClasspower
-            bar:SetHeight(defaultClassPowerBarHeight)
-            bar:SetWidth(singletonWidth)
+            bar:SetSize(singletonWidth, defaultClassPowerBarHeight)
 
-			if(index > 1) then
-				bar:SetPoint('LEFT', ClassPower[index - 1], 'RIGHT', 1, 0)
-			else
-				bar:SetPoint('BOTTOMLEFT', frame.Power, 'TOPLEFT', 0, 1)
+            bar:SetPoint('BOTTOMLEFT', frame.Power, 'TOPLEFT', (index - 1) * (singletonWidth + 1), 1)
+            if index == maxClasspower then
+                bar:SetPoint('TOPRIGHT', frame.Power, 'TOPRIGHT', 0, defaultClassPowerBarHeight + 1)
 			end
 
-			if(index > 5) then
-				bar:SetFrameLevel(bar:GetFrameLevel() + 1)
-			end
-
-			ClassPower[index] = bar
+			classPower[index] = bar
 		end
-        return ClassPower
+
+        return classPower
 end
 
 -- Create cast bar
@@ -389,12 +384,11 @@ local function CreateCastBarText(frame)
     frame.Castbar.Text = text
 end
 
-
 --
 -- Update functions
 --
 
-function updateHealthColor (self, unit, cur, max) 
+local function updateHealthColor(self, unit, cur, max) 
     local bgColor
 
     if unit == 'player' then
@@ -410,12 +404,12 @@ function updateHealthColor (self, unit, cur, max)
     self.bg:SetColorTexture(unpack(bgColor))
 end
 
-function updatePowerColor(self, unit) 
+local function updatePowerColor(self, unit) 
     local color = getPowerBarColor(unit)
     self:SetStatusBarColor(unpack(color))
 end 
 
-function updatePowerBarVisibility(frame) 
+local function updatePowerBarVisibility(frame) 
     local unit = 'target'
     if UnitPlayerControlled(unit) or UnitPowerType(unit) ~= 1 then
         local ycoord = frame:GetHeight() - (powerBarHeight + outlineWidth)
@@ -473,6 +467,15 @@ local function StyleFunc(frame, unit)
         frame.Castbar:SetPoint("TOPLEFT", nil, "CENTER", coordMainHealthX + padding, coordMainHealthY)
         frame.Castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", -coordMainHealthX - padding, coordMainHealthY - castbarHeight)
         frame.CastbarText = CreateCastBarText(frame)
+
+        if(select(2, UnitClass('player')) == 'DEATHKNIGHT') then
+            frame.Runes = CreateClassPower(frame, 6)
+            frame.Runes.colorSpec = true
+        end 
+
+        --frame:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE", playerThreatHandler)
+        --frame:RegisterEvent("UNIT_THREAT_LIST_UPDATE", playerThreatHandler) 
+        --frame:RegisterEvent("PLAYER_LEAVE_COMBAT", playerThreatHandler) 
     elseif unit == 'target' then
         frame.Health = CreateHealthBar(frame, unit)
         frame.Power = CreatePowerBar(frame, unit)
