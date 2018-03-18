@@ -6,10 +6,9 @@
 --  - test all classes
 --  - make rune power and balance druid resources work
 --  - flesh out castbar (latency, other place/size...)
---  - use infoborder for something
 --  - party frames
 --  - nameplates
---  - fix bug: dyke.. registered event handler doesnt exist
+--  - absorbs/heal prediction
 --  - maybe: buffs
 --  - maybe: loss of control timer?
 --
@@ -330,7 +329,6 @@ local function CreatePowerBar(frame, unit)
     local power = CreateStatusBar(frame, color, getColor(defaultPowerBarBgColor), nil, true, 4)
     power:SetPoint("TOPLEFT", frame.Health, "BOTTOMLEFT", 0, -outlineWidth)
     power:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
-    power.UpdateColor = updatePowerColor
 
     return power
 end
@@ -513,6 +511,7 @@ local function StyleFunc(frame, unit)
         frame:HookScript("OnEvent", targetChangedHandler)
     end
 
+    frame.Power.UpdateColor = updatePowerColor
     CreateHealthText(frame)
     CreateNameText(frame)
 end
