@@ -9,8 +9,9 @@
 --  - use infoborder for something
 --  - party frames
 --  - nameplates
+--  - fix bug: dyke.. registered event handler doesnt exist
 --  - maybe: buffs
---  - target infoborder color by reaction for npcs, by class for players
+--  - maybe: loss of control timer?
 --
 --]]
 
@@ -56,7 +57,7 @@ local dykeColors = {
 local defaultInfoBorderColor = {100, 100, 100}
 local defaultBorderColor = {0, 0, 0}
 local defaultAggroInfoBorderColor = {255, 0, 0}
-local defaultTargetBarBgColor = {0.5, 0.5, 0.5}
+local defaultTargetBarBgColor = {128, 128, 128}
 local defaultFallbackTargetBarBgColor = {0, 255, 0}
 local defaultTargetBarBgAlpha = 0.8
 local defaultPowerBarTintMultiplier = 0.8 
@@ -203,10 +204,8 @@ local function addInnerShadow(frame, width)
 end
 
 local function setInfoBorderColorByThreat(frame) 
-    if(UnitDetailedThreatSituation("player", frame.unit)) then
+    if UnitDetailedThreatSituation("player", frame.unit) then
         frame:setInfoBorderColor(getColor(defaultAggroInfoBorderColor))
-    else
-        frame:setInfoBorderColor(getColor(defaultInfoBorderColor))
     end
 end
 
@@ -397,6 +396,7 @@ end
 
 function updateHealthColor (self, unit, cur, max) 
     local bgColor
+
     if unit == 'player' then
         local perc = cur / max
         local c1 = getColor(defaultHealthBarBgGradientColor1)
@@ -427,6 +427,21 @@ function updatePowerBarVisibility(frame)
     end
 end
 
+local function updateTargetPowerBarInfoborderColor(frame)
+    local unit = 'target'
+    local color
+
+    if UnitPlayerControlled(unit) then
+        local _, class = UnitClass(unit) 
+        color = oUF.colors.class[class] 
+    else
+        reaction = UnitReaction(unit, 'player')
+        color = oUF.colors.reaction[reaction] 
+    end 
+
+    frame:setInfoBorderColor(color)
+end
+
 --
 -- Event handlers
 --
@@ -435,8 +450,10 @@ local function threatHandler(frame)
     setInfoBorderColorByThreat(frame)
 end
 
-local function powerBarHandler(frame)
+local function targetPowerBarHandler(frame)
     updatePowerBarVisibility(frame)
+    updateTargetPowerBarInfoborderColor(frame)
+    setInfoBorderColorByThreat(frame)
 end
 
 -- Create Style
@@ -468,7 +485,7 @@ local function StyleFunc(frame, unit)
         frame:RegisterEvent("UNIT_THREAT_LIST_UPDATE", threatHandler) 
 		frame:RegisterEvent('PLAYER_TARGET_CHANGED', threatHandler)
         frame:RegisterEvent('UNIT_TARGET')
-        frame:HookScript("OnEvent", powerBarHandler)
+        frame:HookScript("OnEvent", targetPowerBarHandler)
     end
 
     CreateHealthText(frame)
