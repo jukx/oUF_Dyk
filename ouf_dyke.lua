@@ -225,7 +225,7 @@ local function CreateStatusBar(self, color, bgColor, borderColor, drawShadow, sh
         bar.bg = bg 
     end
 
-    addBorder(bar, outlineWidth)  -- add outline to any statusbar
+    addBorder(bar, outlineWidth, borderColor)  -- add outline to any statusbar
 
     if drawShadow then
         addInnerShadow(bar, shadowWidth)
@@ -304,6 +304,49 @@ local function CreateHealthBar(frame, unit, height)
     end
 
     return health 
+end
+
+local function createHealthPrediction(frame)
+    -- Position and size
+    --local myBar = CreateFrame('StatusBar', nil, frame.Health)
+    local myBar = CreateStatusBar(frame.Health, getColor({100, 255, 0, 0.6}), {0, 0, 0, 0}, {0, 0, 0, 0})
+    myBar:SetPoint('TOP')
+    myBar:SetPoint('BOTTOM')
+    myBar:SetPoint('LEFT', frame.Health:GetStatusBarTexture(), 'RIGHT')
+    myBar:SetWidth(200)
+
+    local otherBar = CreateStatusBar(frame.Health, getColor({100, 255, 0, 0.6}), {0, 0, 0, 0}, {0, 0, 0, 0})
+    otherBar:SetPoint('TOP')
+    otherBar:SetPoint('BOTTOM')
+    otherBar:SetPoint('LEFT', myBar:GetStatusBarTexture(), 'RIGHT')
+    otherBar:SetWidth(200)
+
+    local absorbBar = CreateStatusBar(frame.Health, getColor({255, 255, 255, 0.5}), {0, 0, 0, 0}, {0, 0, 0, 0})
+    absorbBar:SetPoint('TOP')
+    absorbBar:SetPoint('BOTTOM')
+    absorbBar:SetPoint('LEFT', otherBar:GetStatusBarTexture(), 'RIGHT')
+    absorbBar:SetWidth(200)
+
+    local healAbsorbBar = CreateFrame('StatusBar', nil, frame.Health)
+    healAbsorbBar:SetPoint('TOP')
+    healAbsorbBar:SetPoint('BOTTOM')
+    healAbsorbBar:SetPoint('RIGHT', frame.Health:GetStatusBarTexture())
+    healAbsorbBar:SetWidth(200)
+    healAbsorbBar:SetReverseFill(true)
+
+    local overAbsorb = CreateStatusBar(frame.InfoBorder, getColor({255, 255, 255, 0.8}), {0, 0, 0, 0}, {0, 0, 0, 0})
+    overAbsorb:SetPoint('TOPLEFT', frame.InfoBorder, 'TOPRIGHT', -1, 0)
+    overAbsorb:SetPoint('BOTTOMRIGHT', frame.InfoBorder)
+
+    -- Register with oUF
+    frame.HealthPrediction = {
+        myBar = myBar,
+        otherBar = otherBar,
+        absorbBar = absorbBar,
+        healAbsorbBar = healAbsorbBar,
+        overAbsorb = overAbsorb,
+        maxOverflow = 1.1,
+    }
 end
 
 -- Create Health Text
@@ -511,6 +554,7 @@ local function StyleFunc(frame, unit)
         frame:HookScript("OnEvent", targetChangedHandler)
     end
 
+    createHealthPrediction(frame)
     frame.Health.UpdateColor = updateHealthColor
     frame.Power.UpdateColor = updatePowerColor
     CreateHealthText(frame)
