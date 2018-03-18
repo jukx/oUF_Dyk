@@ -69,6 +69,7 @@ local defaultCastBarBgColor = {0, 0, 0, 0.5}
 local defaultHealthBarBgGradientColor1 = {255, 0, 0}
 local defaultHealthBarBgGradientColor2 = {226, 209, 124}
 local defaultHealthBarBgAlpha = 0.8
+local defaultCombatIndicatorColor = {200, 100, 0}
 
 -- End config
 
@@ -421,7 +422,20 @@ local function updatePowerBarVisibility(frame)
     end
 end
 
-local function updateTargetPowerBarInfoborderColor(frame)
+local function updatePlayerInfoborderColor(frame)
+    local unit = 'player'
+
+    print("In combat?", UnitAffectingCombat('player'))
+    if UnitAffectingCombat(unit) then
+        color = getColor(defaultCombatIndicatorColor)
+    else
+        color = getColor(defaultInfoBorderColor)
+    end
+
+    frame:setInfoBorderColor(color)
+end
+
+local function updateTargetInfoborderColor(frame)
     local unit = 'target'
     local color
 
@@ -440,13 +454,17 @@ end
 -- Event handlers
 --
 
+local function playerThreatHandler(frame, event)
+    updatePlayerInfoborderColor(frame)
+end
+
 local function threatHandler(frame)
     setInfoBorderColorByThreat(frame)
 end
 
-local function targetPowerBarHandler(frame)
+local function targetChangedHandler(frame)
     updatePowerBarVisibility(frame)
-    updateTargetPowerBarInfoborderColor(frame)
+    updateTargetInfoborderColor(frame)
     setInfoBorderColorByThreat(frame)
 end
 
@@ -487,8 +505,7 @@ local function StyleFunc(frame, unit)
         frame:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE", threatHandler)
         frame:RegisterEvent("UNIT_THREAT_LIST_UPDATE", threatHandler) 
 		frame:RegisterEvent('PLAYER_TARGET_CHANGED', threatHandler)
-        frame:RegisterEvent('UNIT_TARGET')
-        frame:HookScript("OnEvent", targetPowerBarHandler)
+        frame:RegisterEvent('UNIT_TARGET', targetChangedHandler)
     end
 
     CreateHealthText(frame)
