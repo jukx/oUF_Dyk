@@ -302,7 +302,7 @@ local function CreateHealthBar(frame, unit, height)
     if height then
         health:SetPoint('BOTTOMRIGHT', frame, 'TOPRIGHT', 0, -height)
     end
-    health.UpdateColor = updateHealthColor
+
     return health 
 end
 
@@ -511,6 +511,7 @@ local function StyleFunc(frame, unit)
         frame:HookScript("OnEvent", targetChangedHandler)
     end
 
+    frame.Health.UpdateColor = updateHealthColor
     frame.Power.UpdateColor = updatePowerColor
     CreateHealthText(frame)
     CreateNameText(frame)
