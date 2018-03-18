@@ -385,6 +385,13 @@ local function CreateCastBarText(frame)
     frame.Castbar.Text = text
 end
 
+local function createCombatIndicator(frame)
+    indicator = CreateStatusBar(frame.InfoBorder, defaultAggroInfoBorderColor)
+    indicator:SetAllPoints()
+
+    return indicator
+end
+
 --
 -- Update functions
 --
@@ -425,7 +432,6 @@ end
 local function updatePlayerInfoborderColor(frame)
     local unit = 'player'
 
-    print("In combat?", UnitAffectingCombat('player'))
     if UnitAffectingCombat(unit) then
         color = getColor(defaultCombatIndicatorColor)
     else
@@ -454,18 +460,16 @@ end
 -- Event handlers
 --
 
-local function playerThreatHandler(frame, event)
-    updatePlayerInfoborderColor(frame)
-end
-
 local function threatHandler(frame)
     setInfoBorderColorByThreat(frame)
 end
 
-local function targetChangedHandler(frame)
-    updatePowerBarVisibility(frame)
-    updateTargetInfoborderColor(frame)
-    setInfoBorderColorByThreat(frame)
+local function targetChangedHandler(frame, event)
+    if event == 'PLAYER_TARGET_CHANGED' or event == 'UNIT_TARGET' then
+        updatePowerBarVisibility(frame)
+        updateTargetInfoborderColor(frame)
+        setInfoBorderColorByThreat(frame)
+    end
 end
 
 -- Create Style
@@ -486,14 +490,13 @@ local function StyleFunc(frame, unit)
         frame.Castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", -coordMainHealthX - padding, coordMainHealthY - castbarHeight)
         frame.CastbarText = CreateCastBarText(frame)
 
+        frame.CombatIndicator = createCombatIndicator(frame)
+
         if(select(2, UnitClass('player')) == 'DEATHKNIGHT') then
             frame.Runes = CreateClassPower(frame, 6)
             frame.Runes.colorSpec = true
         end 
 
-        --frame:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE", playerThreatHandler)
-        --frame:RegisterEvent("UNIT_THREAT_LIST_UPDATE", playerThreatHandler) 
-        --frame:RegisterEvent("PLAYER_LEAVE_COMBAT", playerThreatHandler) 
     elseif unit == 'target' then
         frame.Health = CreateHealthBar(frame, unit)
         frame.Power = CreatePowerBar(frame, unit)
@@ -505,7 +508,9 @@ local function StyleFunc(frame, unit)
         frame:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE", threatHandler)
         frame:RegisterEvent("UNIT_THREAT_LIST_UPDATE", threatHandler) 
 		frame:RegisterEvent('PLAYER_TARGET_CHANGED', threatHandler)
-        frame:RegisterEvent('UNIT_TARGET', targetChangedHandler)
+		frame:RegisterEvent('PLAYER_TARGET_CHANGED', targetChangedHandler)
+        frame:RegisterEvent('UNIT_TARGET', targetChangedHandler, unitless)
+        frame:HookScript("OnEvent", targetChangedHandler)
     end
 
     CreateHealthText(frame)
