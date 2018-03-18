@@ -25,30 +25,58 @@
 local addonName, addon = ...
 local helpers = addon.helpers
 
--- config
--- coordinates for spawning
+--
+-- Config
+--
+
+-- Coordinates for spawning
 local coordMainHealthX = -90
 local coordMainHealthY = -120
+local coordTargetCastBarY = 200
 
+-- Media
 local defaultBartex = [[Interface\AddOns\ouf_dyke\textures\statusbar]]
 local defaultBordertex =  [[Interface\AddOns\ouf_dyke\textures\border]]
 local innerShadowTexture =  [[Interface\AddOns\ouf_dyke\textures\inner_shadow]]
 local defaultFont = [[Interface\AddOns\ouf_dyke\fonts\roboto-medium.ttf]]
 
-local padding = 7
+-- Measures
+local framesize = {200, 60}
+local padding = 7  -- between frames
 local outlineWidth = 1
+
 local powerBarWidth = 240
 local powerBarHeight = 10 
 local castbarHeight = 30
 local castbarWidth = 300
+local defaultClassPowerBarHeight = 15
 
+local defaultPowerBarFontSize = 14
+
+-- Colors
 local defaultBarColor = {36, 35, 33}
 local dykeColors = {
     power = {
         ["MANA"] = { r = 36/255, g = 110/255, b = 229/255 };
     }
 }
--- end config
+local defaultInfoBorderColor = {100, 100, 100}
+local defaultBorderColor = {0, 0, 0}
+local defaultAggroInfoBorderColor = {255, 0, 0}
+local defaultTargetBarBgColor = {0.5, 0.5, 0.5}
+local defaultFallbackTargetBarBgColor = {0, 255, 0}
+local defaultTargetBarBgAlpha = 0.8
+local defaultPowerBarTintMultiplier = 0.8 
+local defaultPowerBarBgColor = {0, 0, 0, 0.5}
+local defaultBaseClassPowerColor = {255, 255, 255}  -- it's being colored by class color by oUF
+local defaultClassPowerBarBgColor = {0, 0, 0, 0.5}
+local defaultCastBarColor = {184, 150, 0}
+local defaultCastBarBgColor = {0, 0, 0, 0.5}
+local defaultHealthBarBgGradientColor1 = {255, 0, 0}
+local defaultHealthBarBgGradientColor2 = {226, 209, 124}
+local defaultHealthBarBgAlpha = 0.8
+
+-- End config
 
 --
 -- Custom oUF Tags
@@ -135,7 +163,7 @@ local function normalizeColors(tuple)
 end
 
 local function addBorder(frame, thickness, color, texture)
-    if color then color = normalizeColors(color) else color = {0, 0, 0} end
+    if color then color = normalizeColors(color) else color = defaultBorderColor end
     local border = CreateFrame("Frame", nil, frame)
     local backdrop = {
         edgeFile = texture or defaultBordertex,
@@ -155,11 +183,11 @@ end
 
 local function addMainBorder(frame, borderColor)
     border1 = addBorder(frame, 1)
-    border2 = addBorder(border1, 1, borderColor or {100, 100, 100}) 
+    border2 = addBorder(border1, 1, borderColor or defaultInfoBorderColor) 
     border3 = addBorder(border2, 1)
     frame.InfoBorder = border2
     frame.setInfoBorderColor = function(self, color)
-        if color then color = normalizeColors(color) else color = {0, 0, 0} end
+        if color then color = normalizeColors(color) else color = defaultInfoBorderColor end
         self.InfoBorder:SetBackdropBorderColor(unpack(color))
     end
 end
@@ -180,9 +208,9 @@ end
 
 local function setInfoBorderColorByThreat(frame) 
     if(UnitDetailedThreatSituation("player", frame.unit)) then
-        frame:setInfoBorderColor({255, 0, 0})
+        frame:setInfoBorderColor(defaultAggroInfoBorderColor)
     else
-        frame:setInfoBorderColor({100, 100, 100})
+        frame:setInfoBorderColor(defaultInfoBorderColor)
     end
 end
 
@@ -237,15 +265,16 @@ local function getBarBgColor(unit)
         local _, class = UnitClass(unit) 
         color = oUF.colors.class[class] 
     else
-        color = {0.5, 0.5, 0.5}
+        color = defaultTargetBarBgColor
     end 
 
     if color then
         color = helpers.multVec(color, 255)
     else
-        color = {0, 255, 0}
+        color = defaultFallbackTargetBarBgColor
     end
-    color[4] = 0.8
+    
+    color[4] = defaultTargetBarBgAlpha
 
     return color
 end
@@ -261,7 +290,7 @@ local function getPowerBarColor(unit)
     if color_ then
         for i, key in pairs({'r', 'g', 'b'}) do 
             color[i] = color_[key] * 255 
-            color[i] = color_[key] * 0.8 
+            color[i] = color_[key] * defaultPowerBarTintMultiplier
         end
     else
         print("Error:")
@@ -309,7 +338,7 @@ end
 local function CreatePowerBar(frame, unit)
     local color = getPowerBarColor(unit)
 
-    local power = CreateStatusBar(frame, color, {0, 0, 0, 0.5}, nil, true, 4)
+    local power = CreateStatusBar(frame, color, defaultPowerBarBgColor, nil, true, 4)
     power:SetPoint("TOPLEFT", frame.Health, "BOTTOMLEFT", 0, -outlineWidth)
     power:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
     power.UpdateColor = updatePowerColor
@@ -319,7 +348,7 @@ end
 
 -- Create Power Text
 local function CreatePowerText(frame)
-    local text = createText(frame.Power, nil, 14)
+    local text = createText(frame.Power, nil, defaultPowerBarFontSize)
 
     text:SetPoint("CENTER", frame.Power, "CENTER")
     frame:Tag(text, '[perpp<%]')
@@ -334,13 +363,13 @@ end
 -- Create class power statusbar
 local function CreateClassPower(frame)
 		ClassPower = {}
-        --ClassPower.UpdateColor = function() end
 
 		for index = 1, 11 do -- have to create an extra to force __max to be different from UnitPowerMax
-            local bar = CreateStatusBar(frame, {255, 255, 255}, {0, 0, 0, 0.5})
+            local bar = CreateStatusBar(frame, defaultBaseClassPowerColor, defaultClassPowerBarBgColor)
 
-            singletonWidth = (frame.Power:GetWidth() - 4) / 5  -- make ClassPowerBar 1/5 the width of the Power Bar... is this correct for something else than rogues/locks?
-            bar:SetHeight(15)
+            local maxClasspower = 5  -- make ClassPowerBar 1/5 the width of the Power Bar... is this correct for something else than rogues/locks?
+            singletonWidth = (frame.Power:GetWidth() - 4) / maxClasspower
+            bar:SetHeight(defaultClassPowerBarHeight)
             bar:SetWidth(singletonWidth)
 
 			if(index > 1) then
@@ -360,7 +389,7 @@ end
 
 -- Create cast bar
 local function CreateCastBar(frame)
-    local castbar = CreateStatusBar(frame, {184, 150, 0}, {0, 0, 0, 0.5}, nil, true, 8)
+    local castbar = CreateStatusBar(frame, defaultCastBarColor, defaultCastBarBgColor, nil, true, 8)
 
     return castbar
 end
@@ -381,14 +410,14 @@ function updateHealthColor (self, unit, cur, max)
     local bgColor
     if unit == 'player' then
         local perc = cur / max
-        local c1 = {255, 0, 0}
-        local c2 = {226, 209, 124}
+        local c1 = defaultHealthBarBgGradientColor1
+        local c2 = defaultHealthBarBgGradientColor2
         bgColor = helpers.addVec(helpers.multVec(c2, perc), helpers.multVec(c1, 1 - perc))  -- TODO describe what this does 
     elseif unit == 'target' then
         bgColor = getBarBgColor(unit)
     end
 
-    bgColor[4] = 0.8
+    bgColor[4] = defaultHealthBarBgAlpha
     bgColor = normalizeColors(bgColor)
     self.bg:SetColorTexture(unpack(bgColor))
 end
@@ -424,7 +453,7 @@ end
 
 -- Create Style
 local function StyleFunc(frame, unit) 
-    frame:SetSize(200,60) 
+    frame:SetSize(unpack(frameSize))
 	frame:RegisterForClicks('AnyUp')  -- to enable rightclick menu
     addMainBorder(frame) 
 
@@ -443,8 +472,8 @@ local function StyleFunc(frame, unit)
         frame.Health = CreateHealthBar(frame, unit)
         frame.Power = CreatePowerBar(frame, unit)
         frame.Castbar = CreateCastBar(frame)
-        frame.Castbar:SetPoint("TOPLEFT", nil, "CENTER", -castbarWidth/2, 200 + castbarHeight)
-        frame.Castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", castbarWidth/2, 200)
+        frame.Castbar:SetPoint("TOPLEFT", nil, "CENTER", -castbarWidth/2, coordTargetCastBarY + castbarHeight)
+        frame.Castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", castbarWidth/2, coordTargetCastBarY)
         frame.CastbarText = CreateCastBarText(frame)
 
         frame:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE", threatHandler)
