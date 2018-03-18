@@ -351,24 +351,24 @@ end
 
 -- Create class power statusbar
 local function CreateClassPower(frame, maxClasspower)
-		local classPower = {} 
-        local maxClasspower = maxClasspower or 5  -- make ClassPowerBar 1/5 the width of the Power Bar... is this correct for something else than rogues/locks?  
-        local singletonWidth = math.floor((powerBarWidth - (maxClasspower - 1)) / maxClasspower)
+    local classPower = {} 
+    local maxClasspower = maxClasspower or 5  -- make ClassPowerBar 1/5 the width of the Power Bar... is this correct for something else than rogues/locks?  
+    local singletonWidth = math.floor((powerBarWidth - (maxClasspower - 1)) / maxClasspower)
 
-		for index = 1, maxClasspower do -- have to create an extra to force __max to be different from UnitPowerMax
-            local bar = CreateStatusBar(frame, getColor(defaultBaseClassPowerColor), getColor(defaultClassPowerBarBgColor))
+    for index = 1, maxClasspower do -- have to create an extra to force __max to be different from UnitPowerMax
+        local bar = CreateStatusBar(frame, getColor(defaultBaseClassPowerColor), getColor(defaultClassPowerBarBgColor), nil, true, 2)
 
-            bar:SetSize(singletonWidth, defaultClassPowerBarHeight)
+        bar:SetSize(singletonWidth, defaultClassPowerBarHeight)
 
-            bar:SetPoint('BOTTOMLEFT', frame.Power, 'TOPLEFT', (index - 1) * (singletonWidth + 1), 1)
-            if index == maxClasspower then
-                bar:SetPoint('TOPRIGHT', frame.Power, 'TOPRIGHT', 0, defaultClassPowerBarHeight + 1)
-			end
+        bar:SetPoint('BOTTOMLEFT', frame.Power, 'TOPLEFT', (index - 1) * (singletonWidth + 1), 1)
+        if index == maxClasspower then
+            bar:SetPoint('TOPRIGHT', frame.Power, 'TOPRIGHT', 0, defaultClassPowerBarHeight + 1)
+        end
 
-			classPower[index] = bar
-		end
+        classPower[index] = bar
+    end
 
-        return classPower
+    return classPower
 end
 
 -- Create cast bar
