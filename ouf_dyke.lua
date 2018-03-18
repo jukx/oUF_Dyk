@@ -48,7 +48,7 @@ local defaultClassPowerBarHeight = 15
 local defaultPowerBarFontSize = 14
 
 -- Colors
-local defaultBarColor = {36, 35, 33}
+local defaultBarColor = {26, 25, 23}
 local dykeColors = {
     power = {
         ["MANA"] = { r = 36/255, g = 110/255, b = 229/255 };
