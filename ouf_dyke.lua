@@ -10,15 +10,8 @@
 --  - party frames
 --  - nameplates
 --  - maybe: buffs
---  - refactor a bit, remove magic numbers
---  - target castbar
---  - target health bg color by reaction
+--  - target infoborder color by reaction for npcs, by class for players
 --
---  A note about color values:
---    Throughout this addon, color values are used as (unkeyed!) tables {r, g, b[, a]}.
---    When they are explicitly declared, they are written in the rgb-255 form,
---    but changed to Blizzard's rgb-1 form through normalizeColors() (right before being passed to API functions.
---    TODO: refactor this
 --]]
 
 --get addon data
@@ -154,16 +147,18 @@ registerTag('dyke:curhp',
 
 -- Style functions
 
-local function normalizeColors(tuple)
+local function getColor(color)
+    newColor = []
     for i=1,3 do
-        tuple[i] = tuple[i]/255 
+        newColor[i] = color[i]/255 
     end
 
-    return tuple
+    return newColor
 end
 
 local function addBorder(frame, thickness, color, texture)
-    if color then color = normalizeColors(color) else color = defaultBorderColor end
+    if not color then color = getColor(defaultBorderColor) end
+
     local border = CreateFrame("Frame", nil, frame)
     local backdrop = {
         edgeFile = texture or defaultBordertex,
@@ -183,11 +178,11 @@ end
 
 local function addMainBorder(frame, borderColor)
     border1 = addBorder(frame, 1)
-    border2 = addBorder(border1, 1, borderColor or defaultInfoBorderColor) 
+    border2 = addBorder(border1, 1, getColor(borderColor) or getColor(defaultInfoBorderColor)) 
     border3 = addBorder(border2, 1)
     frame.InfoBorder = border2
     frame.setInfoBorderColor = function(self, color)
-        if color then color = normalizeColors(color) else color = defaultInfoBorderColor end
+        if not color then color = getColor(defaultInfoBorderColor) end
         self.InfoBorder:SetBackdropBorderColor(unpack(color))
     end
 end
@@ -208,17 +203,13 @@ end
 
 local function setInfoBorderColorByThreat(frame) 
     if(UnitDetailedThreatSituation("player", frame.unit)) then
-        frame:setInfoBorderColor(defaultAggroInfoBorderColor)
+        frame:setInfoBorderColor(getColor(defaultAggroInfoBorderColor))
     else
-        frame:setInfoBorderColor(defaultInfoBorderColor)
+        frame:setInfoBorderColor(getColor(defaultInfoBorderColor))
     end
 end
 
 local function CreateStatusBar(self, color, bgColor, borderColor, drawShadow, shadowWidth)
-    -- color - rgb triple of values ranging from 0 - 255 
-    if color then color = normalizeColors(color) end
-    if bgColor then bgColor = normalizeColors(bgColor) end
-        
     if not bartex then
         bartex = defaultBartex
     end
@@ -265,13 +256,11 @@ local function getBarBgColor(unit)
         local _, class = UnitClass(unit) 
         color = oUF.colors.class[class] 
     else
-        color = defaultTargetBarBgColor
+        color = getColor(defaultTargetBarBgColor)
     end 
 
-    if color then
-        color = helpers.multVec(color, 255)
-    else
-        color = defaultFallbackTargetBarBgColor
+    if not color then
+        color = getColor(defaultFallbackTargetBarBgColor)
     end
     
     color[4] = defaultTargetBarBgAlpha
@@ -289,7 +278,6 @@ local function getPowerBarColor(unit)
     -- change color table from keyed by letter to keyed by index
     if color_ then
         for i, key in pairs({'r', 'g', 'b'}) do 
-            color[i] = color_[key] * 255 
             color[i] = color_[key] * defaultPowerBarTintMultiplier
         end
     else
@@ -307,7 +295,7 @@ end
 
 -- Create health statusbar func
 local function CreateHealthBar(frame, unit, height) 
-    local barColor = helpers.table_clone(defaultBarColor)
+    local barColor = getColor(defaultBarColor)
     local bgColor = getBarBgColor(unit)
     local health = CreateStatusBar(frame, barColor, bgColor, nil, true)
     health:SetAllPoints()
@@ -338,7 +326,7 @@ end
 local function CreatePowerBar(frame, unit)
     local color = getPowerBarColor(unit)
 
-    local power = CreateStatusBar(frame, color, defaultPowerBarBgColor, nil, true, 4)
+    local power = CreateStatusBar(frame, color, getColor(defaultPowerBarBgColor), nil, true, 4)
     power:SetPoint("TOPLEFT", frame.Health, "BOTTOMLEFT", 0, -outlineWidth)
     power:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
     power.UpdateColor = updatePowerColor
@@ -365,7 +353,7 @@ local function CreateClassPower(frame)
 		ClassPower = {}
 
 		for index = 1, 11 do -- have to create an extra to force __max to be different from UnitPowerMax
-            local bar = CreateStatusBar(frame, defaultBaseClassPowerColor, defaultClassPowerBarBgColor)
+            local bar = CreateStatusBar(frame, getColor(defaultBaseClassPowerColor), getColor(defaultClassPowerBarBgColor))
 
             local maxClasspower = 5  -- make ClassPowerBar 1/5 the width of the Power Bar... is this correct for something else than rogues/locks?
             singletonWidth = (frame.Power:GetWidth() - 4) / maxClasspower
@@ -389,7 +377,7 @@ end
 
 -- Create cast bar
 local function CreateCastBar(frame)
-    local castbar = CreateStatusBar(frame, defaultCastBarColor, defaultCastBarBgColor, nil, true, 8)
+    local castbar = CreateStatusBar(frame, getColor(defaultCastBarColor), getColor(defaultCastBarBgColor), nil, true, 8)
 
     return castbar
 end
@@ -410,15 +398,14 @@ function updateHealthColor (self, unit, cur, max)
     local bgColor
     if unit == 'player' then
         local perc = cur / max
-        local c1 = defaultHealthBarBgGradientColor1
-        local c2 = defaultHealthBarBgGradientColor2
+        local c1 = getColor(defaultHealthBarBgGradientColor1)
+        local c2 = getColor(defaultHealthBarBgGradientColor2)
         bgColor = helpers.addVec(helpers.multVec(c2, perc), helpers.multVec(c1, 1 - perc))  -- TODO describe what this does 
     elseif unit == 'target' then
         bgColor = getBarBgColor(unit)
     end
 
     bgColor[4] = defaultHealthBarBgAlpha
-    bgColor = normalizeColors(bgColor)
     self.bg:SetColorTexture(unpack(bgColor))
 end
 
