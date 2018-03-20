@@ -415,8 +415,16 @@ local function CreateClassPower(frame, maxClasspower)
 end
 
 -- Create cast bar
-local function CreateCastBar(frame)
-    local castbar = CreateStatusBar(frame, getColor(defaultCastBarColor), getColor(defaultCastBarBgColor), nil, true, 8)
+local function CreateCastBar(frame, unit)
+    local castbar = CreateStatusBar(frame, getColor(defaultCastBarColor), getColor(defaultCastBarBgColor), nil, true, 8) 
+
+    if unit == 'player' then
+        local SafeZone = castbar:CreateTexture(nil, 'OVERLAY')
+        castbar.SafeZone = SafeZone
+    elseif unit == 'target' then
+        shield = addBorder(castbar, 5, getColor({150, 150, 150}))
+        castbar.Shield = shield
+    end
 
     return castbar
 end
@@ -516,7 +524,7 @@ local function StyleFunc(frame, unit)
         frame.Power:SetPoint("BOTTOMRIGHT", nil, "CENTER", powerBarWidth/2, coordMainHealthY + padding)
         frame.PowerText = CreatePowerText(frame)
         frame.ClassPower = CreateClassPower(frame)
-        frame.Castbar = CreateCastBar(frame)
+        frame.Castbar = CreateCastBar(frame, unit)
         frame.Castbar:SetPoint("TOPLEFT", nil, "CENTER", coordMainHealthX + padding, coordMainHealthY)
         frame.Castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", -coordMainHealthX - padding, coordMainHealthY - castbarHeight)
         frame.CastbarText = CreateCastBarText(frame)
@@ -531,7 +539,7 @@ local function StyleFunc(frame, unit)
     elseif unit == 'target' then
         frame.Health = CreateHealthBar(frame, unit)
         frame.Power = CreatePowerBar(frame, unit)
-        frame.Castbar = CreateCastBar(frame)
+        frame.Castbar = CreateCastBar(frame, unit)
         frame.Castbar:SetPoint("TOPLEFT", nil, "CENTER", -castbarWidth/2, coordTargetCastBarY + castbarHeight)
         frame.Castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", castbarWidth/2, coordTargetCastBarY)
         frame.CastbarText = CreateCastBarText(frame)
