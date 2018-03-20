@@ -3,6 +3,7 @@
 -- oUF Dyke (working title)
 --
 -- TODO:
+--  - rework function parameter passing to named params
 --  - test all classes
 --  - flesh out castbar (different position/size...)
 --  - party frames
@@ -234,7 +235,7 @@ local function CreateStatusBar(args)
         bar.bg = bg 
     end
 
-    addBorder(bar, outlineWidth, borderColor)  -- add outline to any statusbar
+    --addBorder(bar, outlineWidth, borderColor)  -- add outline to any statusbar
 
     if drawShadow then
         addInnerShadow(bar, shadowWidth)
@@ -310,11 +311,21 @@ end
 
 -- Create health statusbar func
 local function CreateHealthBar(frame, unit, height) 
-    local health = CreateStatusBar{frame=frame, color=getColor(defaultBarColor), bgColor=getBarBgColor(unit), drawShadow=true}
-    health:SetAllPoints()
     if height then
         health:SetPoint('BOTTOMRIGHT', frame, 'TOPRIGHT', 0, -height)
     end
+
+    local barColor = getColor(defaultBarColor)
+    local bgColor = getBarBgColor(unit)
+
+    local health
+    if frame.unittype == 'nameplate' then
+        health = CreateStatusBar{frame=frame, color=barColor, bgColor=bgColor, drawShadow=true, shadowWidth=4}
+    else
+        health = CreateStatusBar{frame=frame, color=barColor, bgColor=bgColor, drawShadow=true}
+    end
+
+    health:SetAllPoints()
 
     return health 
 end
@@ -366,14 +377,22 @@ local function CreateHealthText(frame)
     local text = createText{frame=frame.Health}
 
     text:SetPoint("CENTER", frame.Health, "CENTER")
+
     frame:Tag(text, '[dyke:status][dyke:curhp][ >dyke:perhp]')
 end
 
 -- Create Health Text
-local function CreateNameText(frame)
-    local text = createText{frame=frame.Health}
+local function CreateNameText(args)
+    frame = args.frame
+    args.frame = frame.Health
+    local text = createText(args)
 
-    text:SetPoint("TOPLEFT", frame.Health, "TOPLEFT", 2, -2)
+    if frame.unittype == 'nameplate' then
+        text:SetPoint("CENTER", frame.Health)
+    else
+        text:SetPoint("TOPLEFT", frame.Health, "TOPLEFT", 2, -2)
+    end
+
     frame:Tag(text, '[name]')
 end
 
@@ -465,7 +484,8 @@ local function updateHealthColor(self, unit, cur, max)
         local c1 = getColor(defaultHealthBarBgGradientColor1)
         local c2 = getColor(defaultHealthBarBgGradientColor2)
         bgColor = helpers.addVec(helpers.multVec(c2, perc), helpers.multVec(c1, 1 - perc))  -- TODO describe what this does 
-    elseif unit == 'target' then
+    else
+    --elseif unit == 'target' then
         bgColor = getBarBgColor(unit)
     end
 
@@ -525,9 +545,11 @@ end
 local function StyleFunc(frame, unit) 
     frame:SetSize(unpack(frameSize))
 	frame:RegisterForClicks('AnyUp')  -- to enable rightclick menu
-    addMainBorder(frame) 
+
+    print("unit:", unit)
 
     if unit == 'player' then
+        addMainBorder(frame) 
         frame.Health = CreateHealthBar(frame, unit)
         frame.Power = CreatePowerBar(frame, unit)
         frame.Power:SetPoint("TOPLEFT", nil, "CENTER", -powerBarWidth/2, coordMainHealthY + padding + powerBarHeight)
@@ -541,12 +563,19 @@ local function StyleFunc(frame, unit)
 
         frame.CombatIndicator = createCombatIndicator(frame)
 
+        createHealthPrediction(frame)
+        frame.Health.UpdateColor = updateHealthColor
+        frame.Power.UpdateColor = updatePowerColor
+        CreateHealthText(frame)
+        CreateNameText{frame=frame}
+
         if(select(2, UnitClass('player')) == 'DEATHKNIGHT') then
             frame.Runes = CreateClassPower(frame, 6)
             frame.Runes.colorSpec = true
         end 
 
     elseif unit == 'target' then
+        addMainBorder(frame) 
         frame.Health = CreateHealthBar(frame, unit)
         frame.Power = CreatePowerBar(frame, unit)
         frame.Castbar = CreateCastBar(frame, unit)
@@ -560,13 +589,22 @@ local function StyleFunc(frame, unit)
 		frame:RegisterEvent('PLAYER_TARGET_CHANGED', targetChangedHandler)
         frame:RegisterEvent('UNIT_TARGET', targetChangedHandler, unitless)
         frame:HookScript("OnEvent", targetChangedHandler)
+
+        createHealthPrediction(frame)
+        frame.Health.UpdateColor = updateHealthColor
+        frame.Power.UpdateColor = updatePowerColor
+        CreateHealthText(frame)
+        CreateNameText{frame=frame}
+
+    elseif unit:sub(1,9) == 'nameplate' then
+        frame.unittype = 'nameplate'
+        frame.Health = CreateHealthBar(frame, unit)
+        frame:SetAllPoints()
+        frame:SetSize(120, 10)
+
+        CreateNameText{frame=frame, size=9, align='CENTER'}
     end
 
-    createHealthPrediction(frame)
-    frame.Health.UpdateColor = updateHealthColor
-    frame.Power.UpdateColor = updatePowerColor
-    CreateHealthText(frame)
-    CreateNameText(frame)
 end
 
 -- Register style with oUF
@@ -577,4 +615,6 @@ oUF:Factory(function(self)
     self:SetActiveStyle(addonName.."style") 
     self:Spawn("player", addonName.."PlayerFrame"):SetPoint("TOPRIGHT", nil, "CENTER", coordMainHealthX, coordMainHealthY) 
     self:Spawn("target", addonName.."TargetFrame"):SetPoint("TOPLEFT", nil, "CENTER", -coordMainHealthX, coordMainHealthY)
+
+    self:SpawnNamePlates(addonName)
 end)
