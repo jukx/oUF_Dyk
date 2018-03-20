@@ -4,11 +4,13 @@
 --
 -- TODO:
 --  - test all classes
---  - make rune power and balance druid resources work
 --  - flesh out castbar (latency, other place/size...)
 --  - party frames
 --  - nameplates
---  - absorbs/heal prediction
+--  - combat color infobar only red when tanking
+--  - rework check which npc has power
+--  - target castbar interruptible
+--  - vehicles
 --  - maybe: buffs
 --  - maybe: loss of control timer?
 --
@@ -68,7 +70,7 @@ local defaultCastBarBgColor = {0, 0, 0, 0.5}
 local defaultHealthBarBgGradientColor1 = {255, 0, 0}
 local defaultHealthBarBgGradientColor2 = {226, 209, 124}
 local defaultHealthBarBgAlpha = 0.8
-local defaultCombatIndicatorColor = {200, 100, 0}
+local defaultCombatIndicatorColor = {200, 200, 200}
 
 -- End config
 
@@ -427,7 +429,7 @@ local function CreateCastBarText(frame)
 end
 
 local function createCombatIndicator(frame)
-    indicator = CreateStatusBar(frame.InfoBorder, defaultAggroInfoBorderColor)
+    indicator = CreateStatusBar(frame.InfoBorder, defaultCombatIndicatorColor)
     indicator:SetAllPoints()
 
     return indicator
@@ -468,18 +470,6 @@ local function updatePowerBarVisibility(frame)
         frame.Health:SetPoint('BOTTOMRIGHT', frame, 'BOTTOMRIGHT')
         frame.Power:Hide()
     end
-end
-
-local function updatePlayerInfoborderColor(frame)
-    local unit = 'player'
-
-    if UnitAffectingCombat(unit) then
-        color = getColor(defaultCombatIndicatorColor)
-    else
-        color = getColor(defaultInfoBorderColor)
-    end
-
-    frame:setInfoBorderColor(color)
 end
 
 local function updateTargetInfoborderColor(frame)
