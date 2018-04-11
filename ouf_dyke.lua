@@ -213,12 +213,12 @@ local function setInfoBorderColorByThreat(frame)
 end
 
 local function CreateStatusBar(args)
-    frame = args.frame
-    color = args.color
-    bgColor = args.bgColor
-    borderColor = args.borderColor
-    drawShadow = args.drawShadow
-    shadowWidth = args.shadowWidth
+    local frame = args.frame
+    local color = args.color
+    local bgColor = args.bgColor
+    local borderColor = args.borderColor
+    local drawShadow = args.drawShadow
+    local shadowWidth = args.shadowWidth
 
     if not bartex then
         bartex = defaultBartex
@@ -235,7 +235,7 @@ local function CreateStatusBar(args)
         bar.bg = bg 
     end
 
-    --addBorder(bar, outlineWidth, borderColor)  -- add outline to any statusbar
+    addBorder(bar, outlineWidth, borderColor)  -- add outline to any statusbar
 
     if drawShadow then
         addInnerShadow(bar, shadowWidth)
@@ -246,11 +246,11 @@ end
 
 -- Create Text
 local function createText(args)
-    frame = args.frame
-    font = args.font
-    size = args.size
-    align = args.align
-    outline = args.outline
+    local frame = args.frame
+    local font = args.font
+    local size = args.size
+    local align = args.align
+    local outline = args.outline
 
     textframe = CreateFrame("Frame", nil, frame)
     textframe:SetAllPoints()
@@ -383,7 +383,7 @@ end
 
 -- Create Health Text
 local function CreateNameText(args)
-    frame = args.frame
+    local frame = args.frame
     args.frame = frame.Health
     local text = createText(args)
 
