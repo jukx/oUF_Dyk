@@ -211,12 +211,19 @@ local function setInfoBorderColorByThreat(frame)
     end
 end
 
-local function CreateStatusBar(self, color, bgColor, borderColor, drawShadow, shadowWidth)
+local function CreateStatusBar(args)
+    frame = args.frame
+    color = args.color
+    bgColor = args.bgColor
+    borderColor = args.borderColor
+    drawShadow = args.drawShadow
+    shadowWidth = args.shadowWidth
+
     if not bartex then
         bartex = defaultBartex
     end
 
-    local bar = CreateFrame("StatusBar", nil, self)      
+    local bar = CreateFrame("StatusBar", nil, frame)
     bar:SetStatusBarTexture(bartex)
     bar:SetStatusBarColor(unpack(color))
 
@@ -297,9 +304,7 @@ end
 
 -- Create health statusbar func
 local function CreateHealthBar(frame, unit, height) 
-    local barColor = getColor(defaultBarColor)
-    local bgColor = getBarBgColor(unit)
-    local health = CreateStatusBar(frame, barColor, bgColor, nil, true)
+    local health = CreateStatusBar{frame=frame, color=getColor(defaultBarColor), bgColor=getBarBgColor(unit), drawShadow=true}
     health:SetAllPoints()
     if height then
         health:SetPoint('BOTTOMRIGHT', frame, 'TOPRIGHT', 0, -height)
@@ -310,20 +315,19 @@ end
 
 local function createHealthPrediction(frame)
     -- Position and size
-    --local myBar = CreateFrame('StatusBar', nil, frame.Health)
-    local myBar = CreateStatusBar(frame.Health, getColor({100, 255, 0, 0.6}), {0, 0, 0, 0}, {0, 0, 0, 0})
+    local myBar = CreateStatusBar{frame=frame.Health, color=getColor{100, 255, 0, 0.6}, bgColor={0, 0, 0, 0}, borderColor={0, 0, 0, 0}}
     myBar:SetPoint('TOP')
     myBar:SetPoint('BOTTOM')
     myBar:SetPoint('LEFT', frame.Health:GetStatusBarTexture(), 'RIGHT')
     myBar:SetWidth(200)
 
-    local otherBar = CreateStatusBar(frame.Health, getColor({100, 255, 0, 0.6}), {0, 0, 0, 0}, {0, 0, 0, 0})
+    local otherBar = CreateStatusBar{frame=frame.Health, color=getColor{100, 255, 0, 0.6}, bgColor={0, 0, 0, 0}, borderColor={0, 0, 0, 0}}
     otherBar:SetPoint('TOP')
     otherBar:SetPoint('BOTTOM')
     otherBar:SetPoint('LEFT', myBar:GetStatusBarTexture(), 'RIGHT')
     otherBar:SetWidth(200)
 
-    local absorbBar = CreateStatusBar(frame.Health, getColor({255, 255, 255, 0.5}), {0, 0, 0, 0}, {0, 0, 0, 0})
+    local absorbBar = CreateStatusBar{frame=frame.Health, color=getColor{255, 255, 255, 0.5}, bgColor={0, 0, 0, 0}, borderColor={0, 0, 0, 0}}
     absorbBar:SetPoint('TOP')
     absorbBar:SetPoint('BOTTOM')
     absorbBar:SetPoint('LEFT', otherBar:GetStatusBarTexture(), 'RIGHT')
@@ -336,7 +340,7 @@ local function createHealthPrediction(frame)
     healAbsorbBar:SetWidth(200)
     healAbsorbBar:SetReverseFill(true)
 
-    local overAbsorb = CreateStatusBar(frame.InfoBorder, getColor({255, 255, 255, 0.8}), {0, 0, 0, 0}, {0, 0, 0, 0})
+    local overAbsorb = CreateStatusBar{frame=frame.InfoBorder, color=getColor{255, 255, 255, 0.8}, bgColor={0, 0, 0, 0}, borderColor={0, 0, 0, 0}}
     overAbsorb:SetPoint('TOPLEFT', frame.InfoBorder, 'TOPRIGHT', -1, 0)
     overAbsorb:SetPoint('BOTTOMRIGHT', frame.InfoBorder)
 
@@ -371,7 +375,7 @@ end
 local function CreatePowerBar(frame, unit)
     local color = getPowerBarColor(unit)
 
-    local power = CreateStatusBar(frame, color, getColor(defaultPowerBarBgColor), nil, true, 4)
+    local power = CreateStatusBar{frame=frame, color=getPowerBarColor(unit), bgColor=getColor(defaultPowerBarBgColor), drawShadow=true, shadowWidth=4}
     power:SetPoint("TOPLEFT", frame.Health, "BOTTOMLEFT", 0, -outlineWidth)
     power:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
 
@@ -399,7 +403,7 @@ local function CreateClassPower(frame, maxClasspower)
     local singletonWidth = math.floor((powerBarWidth - (maxClasspower - 1)) / maxClasspower)
 
     for index = 1, maxClasspower do -- have to create an extra to force __max to be different from UnitPowerMax
-        local bar = CreateStatusBar(frame, getColor(defaultBaseClassPowerColor), getColor(defaultClassPowerBarBgColor), nil, true, 2)
+        local bar = CreateStatusBar{frame=frame, color=getColor(defaultBaseClassPowerColor), bgColor=getColor(defaultClassPowerBarBgColor), drawShadow=true, shadowWidth=2}
 
         bar:SetSize(singletonWidth, defaultClassPowerBarHeight)
 
@@ -416,7 +420,7 @@ end
 
 -- Create cast bar
 local function CreateCastBar(frame, unit)
-    local castbar = CreateStatusBar(frame, getColor(defaultCastBarColor), getColor(defaultCastBarBgColor), nil, true, 8) 
+    local castbar = CreateStatusBar{frame=frame, color=getColor(defaultCastBarColor), bgColor=getColor(defaultCastBarBgColor), drawShadow=true, shadowWidth=8}
 
     if unit == 'player' then
         local SafeZone = castbar:CreateTexture(nil, 'OVERLAY')
@@ -437,7 +441,7 @@ local function CreateCastBarText(frame)
 end
 
 local function createCombatIndicator(frame)
-    indicator = CreateStatusBar(frame.InfoBorder, defaultCombatIndicatorColor)
+    indicator = CreateStatusBar{frame=frame.InfoBorder, color=defaultCombatIndicatorColor}
     indicator:SetAllPoints()
 
     return indicator
