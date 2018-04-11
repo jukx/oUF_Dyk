@@ -38,6 +38,7 @@ local defaultFont = [[Interface\AddOns\ouf_dyke\fonts\roboto-medium.ttf]]
 
 -- Measures
 local frameSize = {200, 48}
+local nameplateFrameSize = {120, 18}
 local padding = 7  -- between frames
 local outlineWidth = 1
 
@@ -311,16 +312,13 @@ end
 
 -- Create health statusbar func
 local function CreateHealthBar(frame, unit, height) 
-    if height then
-        health:SetPoint('BOTTOMRIGHT', frame, 'TOPRIGHT', 0, -height)
-    end
-
     local barColor = getColor(defaultBarColor)
     local bgColor = getBarBgColor(unit)
 
     local health
     if frame.unittype == 'nameplate' then
         health = CreateStatusBar{frame=frame, color=barColor, bgColor=bgColor, drawShadow=true, shadowWidth=4}
+        health.frequentUpdates = true
     else
         health = CreateStatusBar{frame=frame, color=barColor, bgColor=bgColor, drawShadow=true}
     end
@@ -388,7 +386,7 @@ local function CreateNameText(args)
     local text = createText(args)
 
     if frame.unittype == 'nameplate' then
-        text:SetPoint("CENTER", frame.Health)
+        text:SetPoint("CENTER", frame.Health, "TOP", 0, -2)
     else
         text:SetPoint("TOPLEFT", frame.Health, "TOPLEFT", 2, -2)
     end
@@ -546,8 +544,6 @@ local function StyleFunc(frame, unit)
     frame:SetSize(unpack(frameSize))
 	frame:RegisterForClicks('AnyUp')  -- to enable rightclick menu
 
-    print("unit:", unit)
-
     if unit == 'player' then
         addMainBorder(frame) 
         frame.Health = CreateHealthBar(frame, unit)
@@ -595,26 +591,28 @@ local function StyleFunc(frame, unit)
         frame.Power.UpdateColor = updatePowerColor
         CreateHealthText(frame)
         CreateNameText{frame=frame}
-
-    elseif unit:sub(1,9) == 'nameplate' then
-        frame.unittype = 'nameplate'
-        frame.Health = CreateHealthBar(frame, unit)
-        frame:SetAllPoints()
-        frame:SetSize(120, 10)
-
-        CreateNameText{frame=frame, size=9, align='CENTER'}
     end
+end
 
+local function NamePlateStyleFunc(frame, unit) 
+    frame:SetSize(unpack(nameplateFrameSize));
+    frame:SetPoint('CENTER')
+    frame.unittype = 'nameplate'
+    frame.Health = CreateHealthBar(frame, unit)
+
+    CreateNameText{frame=frame, size=9, align='CENTER', outline='OUTLINE'}
 end
 
 -- Register style with oUF
-oUF:RegisterStyle(addonName.."style", StyleFunc)
+oUF:RegisterStyle(addonName.."Style", StyleFunc)
+oUF:RegisterStyle(addonName.."NameplateStyle", NamePlateStyleFunc)
 
 -- Set up oUF factory
 oUF:Factory(function(self)
-    self:SetActiveStyle(addonName.."style") 
+    self:SetActiveStyle(addonName.."Style") 
     self:Spawn("player", addonName.."PlayerFrame"):SetPoint("TOPRIGHT", nil, "CENTER", coordMainHealthX, coordMainHealthY) 
     self:Spawn("target", addonName.."TargetFrame"):SetPoint("TOPLEFT", nil, "CENTER", -coordMainHealthX, coordMainHealthY)
 
+    self:SetActiveStyle(addonName.."NameplateStyle") 
     self:SpawnNamePlates(addonName)
 end)
