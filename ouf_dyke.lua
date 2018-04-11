@@ -470,6 +470,19 @@ local function createCombatIndicator(frame)
     return indicator
 end
 
+local function CreateBuffs(frame)
+    local Buffs = CreateFrame("Frame", nil, frame)
+    buffsize = 20
+    buffspacing = 1
+    Buffs:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", -3, -4)
+    Buffs:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT",  -3 + 8*buffsize + 7*buffspacing, -2 - 2*buffsize - buffspacing)
+    Buffs.size = buffsize
+    Buffs.spacing = buffspacing
+    Buffs['growth-y'] = 'DOWN'
+    Buffs.initialAnchor = 'TOPLEFT'
+    return Buffs
+end
+
 --
 -- Update functions
 --
@@ -591,6 +604,8 @@ local function StyleFunc(frame, unit)
         frame.Power.UpdateColor = updatePowerColor
         CreateHealthText(frame)
         CreateNameText{frame=frame}
+
+        frame.Auras = CreateBuffs(frame)
     end
 end
 
