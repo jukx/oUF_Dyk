@@ -4,19 +4,19 @@
 --
 -- TODO:
 --  - test all classes
---  - flesh out castbar (latency, other place/size...)
+--  - flesh out castbar (different position/size...)
 --  - party frames
 --  - nameplates
 --  - combat color infobar only red when tanking
 --  - rework check which npc has power
 --  - target castbar interruptible
 --  - vehicles
---  - maybe: buffs
+--  - target buffs/debuffs
 --  - maybe: loss of control timer?
 --
 --]]
 
---get addon data
+-- Get addon data
 local addonName, addon = ...
 local helpers = addon.helpers
 
@@ -36,7 +36,7 @@ local innerShadowTexture =  [[Interface\AddOns\ouf_dyke\textures\inner_shadow]]
 local defaultFont = [[Interface\AddOns\ouf_dyke\fonts\roboto-medium.ttf]]
 
 -- Measures
-local frameSize = {200, 60}
+local frameSize = {200, 48}
 local padding = 7  -- between frames
 local outlineWidth = 1
 
