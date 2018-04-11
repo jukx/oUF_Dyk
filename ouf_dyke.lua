@@ -244,7 +244,13 @@ local function CreateStatusBar(args)
 end
 
 -- Create Text
-local function createText(frame,font,size,align,outline)
+local function createText(args)
+    frame = args.frame
+    font = args.font
+    size = args.size
+    align = args.align
+    outline = args.outline
+
     textframe = CreateFrame("Frame", nil, frame)
     textframe:SetAllPoints()
     local text = textframe:CreateFontString(nil, "ARTWORK") --"BORDER", "OVERLAY"
@@ -357,7 +363,7 @@ end
 
 -- Create Health Text
 local function CreateHealthText(frame)
-    local text = createText(frame.Health, nil, nil)
+    local text = createText{frame=frame.Health}
 
     text:SetPoint("CENTER", frame.Health, "CENTER")
     frame:Tag(text, '[dyke:status][dyke:curhp][ >dyke:perhp]')
@@ -365,7 +371,7 @@ end
 
 -- Create Health Text
 local function CreateNameText(frame)
-    local text = createText(frame.Health, nil, nil)
+    local text = createText{frame=frame.Health}
 
     text:SetPoint("TOPLEFT", frame.Health, "TOPLEFT", 2, -2)
     frame:Tag(text, '[name]')
@@ -384,7 +390,7 @@ end
 
 -- Create Power Text
 local function CreatePowerText(frame)
-    local text = createText(frame.Power, nil, defaultPowerBarFontSize)
+    local text = createText{frame=frame.Power, size=defaultPowerBarFontSize}
 
     text:SetPoint("CENTER", frame.Power, "CENTER")
     frame:Tag(text, '[perpp<%]')
@@ -434,7 +440,7 @@ local function CreateCastBar(frame, unit)
 end
 
 local function CreateCastBarText(frame)
-    local text = createText(frame.Castbar)
+    local text = createText{frame=frame.Castbar}
 
     text:SetPoint("CENTER", frame.Castbar, "CENTER")
     frame.Castbar.Text = text
