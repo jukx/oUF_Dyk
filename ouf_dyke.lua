@@ -220,6 +220,7 @@ local function CreateStatusBar(args)
     local borderColor = args.borderColor
     local drawShadow = args.drawShadow
     local shadowWidth = args.shadowWidth
+    local noBorders = args.noBorders
 
     if not bartex then
         bartex = defaultBartex
@@ -236,7 +237,9 @@ local function CreateStatusBar(args)
         bar.bg = bg 
     end
 
-    addBorder(bar, outlineWidth, borderColor)  -- add outline to any statusbar
+    if not noBorders then
+        addBorder(bar, outlineWidth, borderColor)  -- add outline to any statusbar
+    end
 
     if drawShadow then
         addInnerShadow(bar, shadowWidth)
@@ -442,8 +445,10 @@ local function CreateClassPower(frame, maxClasspower)
 end
 
 -- Create cast bar
-local function CreateCastBar(frame, unit)
-    local castbar = CreateStatusBar{frame=frame, color=getColor(defaultCastBarColor), bgColor=getColor(defaultCastBarBgColor), drawShadow=true, shadowWidth=8}
+local function CreateCastBar(frame, unit, drawShadow, noBorders)
+    local drawShadow = drawShadow or true
+    local castbar = CreateStatusBar{frame=frame, color=getColor(defaultCastBarColor), bgColor=getColor(defaultCastBarBgColor), drawShadow=drawShadow or true,
+                                    shadowWidth=8, noBorders=noBorders or false}
 
     if unit == 'player' then
         local SafeZone = castbar:CreateTexture(nil, 'OVERLAY')
@@ -456,8 +461,8 @@ local function CreateCastBar(frame, unit)
     return castbar
 end
 
-local function CreateCastBarText(frame)
-    local text = createText{frame=frame.Castbar}
+local function CreateCastBarText(frame, size)
+    local text = createText{frame=frame.Castbar, size=size}
 
     text:SetPoint("CENTER", frame.Castbar, "CENTER")
     frame.Castbar.Text = text
@@ -614,10 +619,14 @@ local function NamePlateStyleFunc(frame, unit)
     frame:SetSize(unpack(nameplateFrameSize));
     frame:SetPoint('CENTER')
     frame.unittype = 'nameplate'
-    frame.Health = CreateHealthBar(frame, unit)
 
+    frame.Health = CreateHealthBar(frame, unit) 
     CreateNameText{frame=frame, size=9, align='CENTER', outline='OUTLINE'}
     frame.Auras = CreateBuffs(frame, 16)
+    frame.Castbar = CreateCastBar(frame, unit, false)
+    frame.Castbar:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 0, 2)
+    frame.Castbar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+    frame.CastbarText = CreateCastBarText(frame, 8)
 end
 
 -- Register style with oUF
