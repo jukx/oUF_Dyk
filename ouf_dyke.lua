@@ -470,9 +470,9 @@ local function createCombatIndicator(frame)
     return indicator
 end
 
-local function CreateBuffs(frame)
+local function CreateBuffs(frame, buffsize)
     local Buffs = CreateFrame("Frame", nil, frame)
-    buffsize = 20
+    buffsize = buffsize or 20
     buffspacing = 1
     Buffs:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", -3, -4)
     Buffs:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT",  -3 + 8*buffsize + 7*buffspacing, -2 - 2*buffsize - buffspacing)
@@ -480,6 +480,7 @@ local function CreateBuffs(frame)
     Buffs.spacing = buffspacing
     Buffs['growth-y'] = 'DOWN'
     Buffs.initialAnchor = 'TOPLEFT'
+
     return Buffs
 end
 
@@ -616,6 +617,7 @@ local function NamePlateStyleFunc(frame, unit)
     frame.Health = CreateHealthBar(frame, unit)
 
     CreateNameText{frame=frame, size=9, align='CENTER', outline='OUTLINE'}
+    frame.Auras = CreateBuffs(frame, 16)
 end
 
 -- Register style with oUF
