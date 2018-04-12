@@ -49,6 +49,8 @@ local castbarWidth = 300
 local defaultClassPowerBarHeight = 15
 
 local defaultPowerBarFontSize = 14
+local defaultCastBarFontSize = 14
+local defaultCastBarFontSizeSmall = 11
 
 -- Colors
 local defaultBarColor = {26, 25, 23}
@@ -487,7 +489,8 @@ local function CreateCastBarText(frame, size)
     local text = createText{frame=frame.Castbar, size=size}
 
     text:SetPoint("CENTER", frame.Castbar, "CENTER")
-    frame.Castbar.Text = text
+
+    return text
 end
 
 local function createCombatIndicator(frame)
@@ -568,6 +571,16 @@ local function updateNameplate(frame, event, unit)
     end
 end
 
+local function updateCastBar(frame, unit, name)
+    local font = frame.Text:GetFont()
+    if #name > 18 then
+        frame.Text:SetFont(font, defaultCastBarFontSizeSmall)
+    else
+        frame.Text:SetFont(font, defaultCastBarFontSize)
+    end
+end
+
+
 --
 -- Event handlers
 --
@@ -600,7 +613,8 @@ local function StyleFunc(frame, unit)
         frame.Castbar = CreateCastBar(frame, unit)
         frame.Castbar:SetPoint("TOPLEFT", nil, "CENTER", coordMainHealthX + padding, coordMainHealthY)
         frame.Castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", -coordMainHealthX - padding, coordMainHealthY - castbarHeight)
-        frame.CastbarText = CreateCastBarText(frame)
+        frame.Castbar.Text = CreateCastBarText(frame)
+        frame.Castbar.PostCastStart = updateCastBar
 
         frame.CombatIndicator = createCombatIndicator(frame)
 
