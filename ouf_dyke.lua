@@ -7,13 +7,13 @@
 --  - test all classes
 --  - flesh out castbar (different position/size...)
 --  - party frames
---  - nameplates
 --  - combat color infobar only red when tanking
 --  - rework check which npc has power
 --  - target castbar interruptible
 --  - vehicles
 --  - target buffs/debuffs
 --  - maybe: loss of control timer?
+--  - nameplates color by reaction
 --
 --]]
 
@@ -211,6 +211,18 @@ local function setInfoBorderColorByThreat(frame)
     if UnitDetailedThreatSituation("player", frame.unit) then
         frame:setInfoBorderColor(getColor(defaultAggroInfoBorderColor))
     end
+end
+
+local function getClassOrReactionColor(unit) 
+    if UnitPlayerControlled(unit) then
+        local _, class = UnitClass(unit) 
+        color = oUF.colors.class[class] 
+    else
+        reaction = UnitReaction(unit, 'player')
+        color = oUF.colors.reaction[reaction] 
+    end 
+
+    return color
 end
 
 local function CreateStatusBar(args)
@@ -475,12 +487,13 @@ local function createCombatIndicator(frame)
     return indicator
 end
 
-local function CreateBuffs(frame, buffsize)
+local function CreateBuffs(frame, buffsize, disableMouse)
     local Buffs = CreateFrame("Frame", nil, frame)
     buffsize = buffsize or 20
     buffspacing = 1
     Buffs:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", -3, -4)
     Buffs:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT",  -3 + 8*buffsize + 7*buffspacing, -2 - 2*buffsize - buffspacing)
+    Buffs.disableMouse = disableMouse
     Buffs.size = buffsize
     Buffs.spacing = buffspacing
     Buffs['growth-y'] = 'DOWN'
@@ -529,17 +542,19 @@ end
 
 local function updateTargetInfoborderColor(frame)
     local unit = 'target'
-    local color
+    local color = getClassOrReactionColor(unit)
 
-    if UnitPlayerControlled(unit) then
-        local _, class = UnitClass(unit) 
-        color = oUF.colors.class[class] 
-    else
-        reaction = UnitReaction(unit, 'player')
-        color = oUF.colors.reaction[reaction] 
-    end 
+    if color then
+        frame:setInfoBorderColor(color)
+    end
+end
 
-    frame:setInfoBorderColor(color)
+local function updateNameplate(frame, event, unit)
+    local color = getClassOrReactionColor(unit)
+
+    if color then
+        frame.Health.bg:SetColorTexture(unpack(color))
+    end
 end
 
 --
@@ -622,7 +637,7 @@ local function NamePlateStyleFunc(frame, unit)
 
     frame.Health = CreateHealthBar(frame, unit) 
     CreateNameText{frame=frame, size=9, align='CENTER', outline='OUTLINE'}
-    frame.Auras = CreateBuffs(frame, 16)
+    frame.Auras = CreateBuffs(frame, 16, true)
     frame.Castbar = CreateCastBar(frame, unit, false)
     frame.Castbar:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 0, 2)
     frame.Castbar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
@@ -640,5 +655,5 @@ oUF:Factory(function(self)
     self:Spawn("target", addonName.."TargetFrame"):SetPoint("TOPLEFT", nil, "CENTER", -coordMainHealthX, coordMainHealthY)
 
     self:SetActiveStyle(addonName.."NameplateStyle") 
-    self:SpawnNamePlates(addonName)
+    self:SpawnNamePlates(addonName, updateNameplate)
 end)
