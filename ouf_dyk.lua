@@ -1,19 +1,15 @@
 --[[
 --
--- oUF Dyke (working title)
+-- oUF Dyk
 --
 -- TODO:
 --  - rework function parameter passing to named params
 --  - test all classes
---  - flesh out castbar (different position/size...)
 --  - party frames
 --  - combat color infobar only red when tanking
 --  - rework check which npc has power
---  - target castbar interruptible
 --  - vehicles
---  - target buffs/debuffs
 --  - maybe: loss of control timer?
---  - nameplates color by reaction
 --
 --]]
 
@@ -31,10 +27,10 @@ local coordMainHealthY = -120
 local coordTargetCastBarY = 200
 
 -- Media
-local defaultBartex = [[Interface\AddOns\ouf_dyke\textures\statusbar]]
-local defaultBordertex =  [[Interface\AddOns\ouf_dyke\textures\border]]
-local innerShadowTexture =  [[Interface\AddOns\ouf_dyke\textures\inner_shadow]]
-local defaultFont = [[Interface\AddOns\ouf_dyke\fonts\roboto-medium.ttf]]
+local defaultBartex = [[Interface\AddOns\ouf_dyk\textures\statusbar]]
+local defaultBordertex =  [[Interface\AddOns\ouf_dyk\textures\border]]
+local innerShadowTexture =  [[Interface\AddOns\ouf_dyk\textures\inner_shadow]]
+local defaultFont = [[Interface\AddOns\ouf_dyk\fonts\roboto-medium.ttf]]
 
 -- Measures
 local frameSize = {200, 48}
@@ -54,7 +50,7 @@ local defaultCastBarFontSizeSmall = 11
 
 -- Colors
 local defaultBarColor = {26, 25, 23}
-local dykeColors = {
+local dykColors = {
     power = {
         ["MANA"] = { r = 36/255, g = 110/255, b = 229/255 };
     }
@@ -108,14 +104,14 @@ local function registerTag(tagname, events, func)
     oUF.Tags.Events[tagname] = events
 end
 
-registerTag('dyke:status',  
+registerTag('dyk:status',  
             'UNIT_HEALTH PLAYER_UPDATE_RESTING UNIT_CONNECTION',
             function(unit)
                 return getStatus(unit)
             end
     )
 
-registerTag('dyke:perhp',  
+registerTag('dyk:perhp',  
             'UNIT_HEALTH_FREQUENT UNIT_MAXHEALTH',
             function(unit)
                 local curhp = UnitHealth(unit)
@@ -126,7 +122,7 @@ registerTag('dyke:perhp',
             end
     )
 
-registerTag('dyke:maxhp',  
+registerTag('dyk:maxhp',  
             'UNIT_HEALTH_FREQUENT UNIT_MAXHEALTH',
             function(unit)
                 if getStatus(unit) then return end
@@ -137,7 +133,7 @@ registerTag('dyke:maxhp',
             end
     )
 
-registerTag('dyke:curhp',  
+registerTag('dyk:curhp',  
             'UNIT_HEALTH_FREQUENT UNIT_MAXHEALTH',
             function(unit)
                 local curhp = UnitHealth(unit)
@@ -314,7 +310,7 @@ local function getPowerBarColor(unit)
     local color = {}
     _, powerToken = UnitPowerType(unit);
     powerToken = powerToken or 'MANA' 
-    local color_ = dykeColors.power[powerToken] or PowerBarColor[powerToken]
+    local color_ = dykColors.power[powerToken] or PowerBarColor[powerToken]
 
     -- change color table from keyed by letter to keyed by index
     if color_ then
@@ -399,7 +395,7 @@ local function CreateHealthText(frame)
     local text = createText{frame=frame.Health}
 
     text:SetPoint("CENTER", frame, "CENTER", 0, -2)
-    frame:Tag(text, '[dyke:status][dyke:curhp][ >dyke:perhp]')
+    frame:Tag(text, '[dyk:status][dyk:curhp][ >dyk:perhp]')
 
     return text
 end

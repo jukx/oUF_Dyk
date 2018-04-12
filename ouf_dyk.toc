@@ -1,10 +1,9 @@
 ## Interface: 70300
 ## Author: jukx
 ## Notes: layout for oUF
-## Title: oUF Dyke
-## Notes: Working Title
-## Version: 0.0
+## Title: oUF Dyk
+## Version: 0.2
 ## Dependencies: oUF
 
 helpers.lua
-ouf_dyke.lua
+ouf_dyk.lua
