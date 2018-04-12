@@ -396,7 +396,7 @@ end
 local function CreateHealthText(frame)
     local text = createText{frame=frame.Health}
 
-    text:SetPoint("CENTER", frame.Health, "CENTER") 
+    text:SetPoint("CENTER", frame, "CENTER", 0, -2)
     frame:Tag(text, '[dyke:status][dyke:curhp][ >dyke:perhp]')
 
     return text
@@ -525,7 +525,6 @@ local function updateHealthColor(self, unit, cur, max)
         local c2 = getColor(defaultHealthBarBgGradientColor2)
         bgColor = helpers.addVec(helpers.multVec(c2, perc), helpers.multVec(c1, 1 - perc))  -- TODO describe what this does 
     else
-    --elseif unit == 'target' then
         bgColor = getBarBgColor(unit)
     end
 
