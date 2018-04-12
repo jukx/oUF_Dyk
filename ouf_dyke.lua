@@ -267,18 +267,25 @@ local function createText(args)
     local size = args.size
     local align = args.align
     local outline = args.outline
+    local shadow = args.shadow
 
     textframe = CreateFrame("Frame", nil, frame)
     textframe:SetAllPoints()
-    local text = textframe:CreateFontString(nil, "ARTWORK") --"BORDER", "OVERLAY"
+
+    local text = textframe:CreateFontString(nil, "ARTWORK") --"BORDER", "OVERLAY" 
+    text:SetFont(font or defaultFont, size or 14, outline)
+    text:SetJustifyH(align or "LEFT")
 
     if outline then
         outline = "THICKOUTLINE"
     else
         outline = nil
     end
-    text:SetFont(font or defaultFont, size or 14, outline)
-    text:SetJustifyH(align or "LEFT")
+
+    if shadow then 
+        text:SetShadowOffset(1,-1)
+    end
+
     return text
 end
 
@@ -389,17 +396,18 @@ end
 local function CreateHealthText(frame)
     local text = createText{frame=frame.Health}
 
-    text:SetPoint("CENTER", frame.Health, "CENTER")
-
+    text:SetPoint("CENTER", frame.Health, "CENTER") 
     frame:Tag(text, '[dyke:status][dyke:curhp][ >dyke:perhp]')
+
+    return text
 end
 
 -- Create Health Text
 local function CreateNameText(args)
     local frame = args.frame
     args.frame = frame.Health
-    local text = createText(args)
 
+    local text = createText(args) 
     if frame.unittype == 'nameplate' then
         text:SetPoint("CENTER", frame.Health, "TOP", 0, -2)
     else
@@ -407,6 +415,8 @@ local function CreateNameText(args)
     end
 
     frame:Tag(text, '[name]')
+
+    return text
 end
 
 --create power statusbar func
@@ -553,6 +563,8 @@ local function updateNameplate(frame, event, unit)
     local color = getClassOrReactionColor(unit)
 
     if color then
+        frame.NameText:SetTextColor(unpack(color))
+        color = {color[1], color[2], color[3], 0.4}
         frame.Health.bg:SetColorTexture(unpack(color))
     end
 end
@@ -636,7 +648,7 @@ local function NamePlateStyleFunc(frame, unit)
     frame.unittype = 'nameplate'
 
     frame.Health = CreateHealthBar(frame, unit) 
-    CreateNameText{frame=frame, size=9, align='CENTER', outline='OUTLINE'}
+    frame.NameText = CreateNameText{frame=frame, size=9, align='CENTER', shadow=true}
     frame.Auras = CreateBuffs(frame, 16, true)
     frame.Castbar = CreateCastBar(frame, unit, false)
     frame.Castbar:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 0, 2)
