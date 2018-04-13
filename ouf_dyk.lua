@@ -8,9 +8,10 @@
 --  - flesh out party frames with class colors etc
 --  - combat color infobar only red when tanking
 --  - rework check which npc has power
+--  - target castbar channel name!
+--  - make reaction colors lighter, at least for text
 --  - vehicles
 --  - maybe: loss of control timer?
---  - target castbar channel name!
 --
 --]]
 
@@ -55,7 +56,9 @@ local defaultCastBarFontSizeSmall = 11
 local defaultBarColor = {26, 25, 23}
 local dykColors = {
     power = {
-        ["MANA"] = { r = 36/255, g = 110/255, b = 229/255 };
+        ['MANA'] = { r = 36/255, g = 110/255, b = 229/255 },
+        ['POWER_TYPE_RED_POWER'] = PowerBarColor['RAGE'],
+        ['POWER_TYPE_FOCUS'] = PowerBarColor['FOCUS'],
     }
 }
 local defaultInfoBorderColor = {100, 100, 100}
@@ -315,15 +318,16 @@ local function getPowerBarColor(unit)
     powerToken = powerToken or 'MANA' 
     local color_ = dykColors.power[powerToken] or PowerBarColor[powerToken]
 
-    -- change color table from keyed by letter to keyed by index
-    if color_ then
-        for i, key in pairs({'r', 'g', 'b'}) do 
-            color[i] = color_[key] * defaultPowerBarTintMultiplier
-        end
-    else
+    if not color_ then
         print("Error:")
         print("Target:", unit)
         print("Power:", powerToken)
+        color_ = {r=1, b=1, g=1}
+    end
+
+    -- change color table from keyed by letter to keyed by index
+    for i, key in pairs({'r', 'g', 'b'}) do 
+        color[i] = color_[key] * defaultPowerBarTintMultiplier
     end
 
     return color
