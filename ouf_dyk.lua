@@ -51,6 +51,7 @@ local defaultPartyPowerBarHeight = 4
 local defaultPowerBarFontSize = 14
 local defaultCastBarFontSize = 14
 local defaultCastBarFontSizeSmall = 11
+local defaultNameplateFontSize = 10
 
 -- Colors
 local defaultBarColor = {26, 25, 23}
@@ -59,8 +60,13 @@ local dykColors = {
         ['MANA'] = { r = 36/255, g = 110/255, b = 229/255 },
         ['POWER_TYPE_RED_POWER'] = PowerBarColor['RAGE'],
         ['POWER_TYPE_FOCUS'] = PowerBarColor['FOCUS'],
-    }
+    },
+    reaction = {}
 }
+for i, color in pairs(oUF.colors.reaction) do
+   dykColors['reaction'][i] = helpers.lightenColor(color, 0.5)
+end
+
 local defaultInfoBorderColor = {100, 100, 100}
 local defaultBorderColor = {0, 0, 0}
 local defaultAggroInfoBorderColor = {255, 0, 0}
@@ -223,7 +229,7 @@ local function getClassOrReactionColor(unit)
         color = oUF.colors.class[class] 
     else
         reaction = UnitReaction(unit, 'player')
-        color = oUF.colors.reaction[reaction] 
+        color = dykColors['reaction'][reaction] or oUF.colors.reaction[reaction] 
     end 
 
     return color
@@ -661,7 +667,7 @@ local function StyleFunc(frame, unit)
         frame.Castbar = CreateCastBar(frame, unit)
         frame.Castbar:SetPoint("TOPLEFT", nil, "CENTER", -castbarWidth/2, coordTargetCastBarY + castbarHeight)
         frame.Castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", castbarWidth/2, coordTargetCastBarY)
-        frame.CastbarText = CreateCastBarText(frame)
+        frame.Castbar.Text = CreateCastBarText(frame)
 
         frame:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE", threatHandler)
         frame:RegisterEvent("UNIT_THREAT_LIST_UPDATE", threatHandler) 
@@ -701,13 +707,13 @@ local function NamePlateStyleFunc(frame, unit)
     frame.unittype = 'nameplate'
 
     frame.Health = CreateHealthBar(frame, unit)
-    frame.NameText = CreateNameText{frame=frame, size=9, align='CENTER', shadow=true, anchor={"CENTER", frame.Health, "TOP", 0, -2}}
+    frame.NameText = CreateNameText{frame=frame, size=defaultNameplateFontSize, align='CENTER', shadow=true, anchor={"CENTER", frame.Health, "TOP", 0, -2}}
 
     frame.Auras = CreateBuffs{frame=frame, buffsize=16, disableMouse=true}
     frame.Castbar = CreateCastBar(frame, unit, false)
     frame.Castbar:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 0, 2)
     frame.Castbar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
-    frame.CastbarText = CreateCastBarText(frame, 8)
+    frame.Castbar.Text = CreateCastBarText(frame, 8)
 end
 
 -- Register style with oUF
