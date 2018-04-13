@@ -10,6 +10,7 @@
 --  - rework check which npc has power
 --  - vehicles
 --  - maybe: loss of control timer?
+--  - ele maelstrom bar
 --
 --]]
 
@@ -568,7 +569,7 @@ local function updateNameplate(frame, event, unit)
 end
 
 local function updateCastBar(frame, unit, name)
-    local font = frame.Text:GetFont()
+    local font = frame.Text:GetFont() or defaultFont
     if #name > 18 then
         frame.Text:SetFont(font, defaultCastBarFontSizeSmall)
     else
