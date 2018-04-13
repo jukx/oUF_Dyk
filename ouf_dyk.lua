@@ -5,12 +5,12 @@
 -- TODO:
 --  - rework function parameter passing to named params
 --  - test all classes
---  - party frames
+--  - flesh out party frames with class colors etc
 --  - combat color infobar only red when tanking
 --  - rework check which npc has power
 --  - vehicles
 --  - maybe: loss of control timer?
---  - ele maelstrom bar
+--  - target castbar channel name!
 --
 --]]
 
@@ -34,8 +34,9 @@ local innerShadowTexture =  [[Interface\AddOns\ouf_dyk\textures\inner_shadow]]
 local defaultFont = [[Interface\AddOns\ouf_dyk\fonts\roboto-medium.ttf]]
 
 -- Measures
-local frameSize = {200, 48}
-local nameplateFrameSize = {120, 18}
+local defaultFrameSize = {200, 48}
+local defaultFrameSizeParty = {160, 28}
+local defaultNameplateFrameSize = {120, 18}
 local padding = 7  -- between frames
 local outlineWidth = 1
 
@@ -44,6 +45,7 @@ local powerBarHeight = 10
 local castbarHeight = 30
 local castbarWidth = 300
 local defaultClassPowerBarHeight = 15
+local defaultPartyPowerBarHeight = 4
 
 local defaultPowerBarFontSize = 14
 local defaultCastBarFontSize = 14
@@ -392,11 +394,15 @@ local function createHealthPrediction(frame)
 end
 
 -- Create Health Text
-local function CreateHealthText(frame)
-    local text = createText{frame=frame.Health}
+local function CreateHealthText(args)
+    local frame = args.frame
+    local anchor = args.anchor or {"CENTER", frame, "CENTER", 0, -2}
+    local tag = args.tag or '[dyk:status][dyk:curhp][ >dyk:perhp]'
+    args.frame = frame.Health
 
-    text:SetPoint("CENTER", frame, "CENTER", 0, -2)
-    frame:Tag(text, '[dyk:status][dyk:curhp][ >dyk:perhp]')
+    local text = createText(args)
+    text:SetPoint(unpack(anchor))
+    frame:Tag(text, tag)
 
     return text
 end
@@ -404,15 +410,11 @@ end
 -- Create Health Text
 local function CreateNameText(args)
     local frame = args.frame
+    local anchor = args.anchor or {"TOPLEFT", frame.Health, "TOPLEFT", 2, -2}
     args.frame = frame.Health
 
     local text = createText(args) 
-    if frame.unittype == 'nameplate' then
-        text:SetPoint("CENTER", frame.Health, "TOP", 0, -2)
-    else
-        text:SetPoint("TOPLEFT", frame.Health, "TOPLEFT", 2, -2)
-    end
-
+    text:SetPoint(unpack(anchor)) 
     frame:Tag(text, '[name]')
 
     return text
@@ -497,12 +499,23 @@ local function createCombatIndicator(frame)
     return indicator
 end
 
-local function CreateBuffs(frame, buffsize, disableMouse)
+local function CreateBuffs(args)
+    local frame = args.frame
+    local buffsize = args.buffsize
+    local disableMouse = args.disableMouse
+    local anchor2 = args.anchor
+
     local Buffs = CreateFrame("Frame", nil, frame)
+
     buffsize = buffsize or 20
     buffspacing = 1
-    Buffs:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", -3, -4)
-    Buffs:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT",  -3 + 8*buffsize + 7*buffspacing, -2 - 2*buffsize - buffspacing)
+    if anchor2 == 'RIGHT' then
+        Buffs:SetPoint("TOPLEFT", frame, "TOPRIGHT", 2, 1)
+        Buffs:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT",  2 + 8*buffsize + 7*buffspacing, 1 -2*buffsize - buffspacing) 
+    else
+        Buffs:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", -3, -4)
+        Buffs:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT",  -3 + 8*buffsize + 7*buffspacing, -4 - 2*buffsize - buffspacing)
+    end
     Buffs.disableMouse = disableMouse
     Buffs.size = buffsize
     Buffs.spacing = buffspacing
@@ -568,6 +581,16 @@ local function updateNameplate(frame, event, unit)
     end
 end
 
+local function updateNameplate(frame, event, unit)
+    local color = getClassOrReactionColor(unit)
+
+    if color then
+        frame.NameText:SetTextColor(unpack(color))
+        color = {color[1], color[2], color[3], 0.4}
+        frame.Health.bg:SetColorTexture(unpack(color))
+    end
+end
+
 local function updateCastBar(frame, unit, name)
     local font = frame.Text:GetFont() or defaultFont
     if #name > 18 then
@@ -596,11 +619,11 @@ end
 
 -- Create Style
 local function StyleFunc(frame, unit) 
-    frame:SetSize(unpack(frameSize))
 	frame:RegisterForClicks('AnyUp')  -- to enable rightclick menu
 
     if unit == 'player' then
         addMainBorder(frame) 
+        frame:SetSize(unpack(defaultFrameSize))
         frame.Health = CreateHealthBar(frame, unit)
         frame.Power = CreatePowerBar(frame, unit)
         frame.Power:SetPoint("TOPLEFT", nil, "CENTER", -powerBarWidth/2, coordMainHealthY + padding + powerBarHeight)
@@ -618,7 +641,7 @@ local function StyleFunc(frame, unit)
         createHealthPrediction(frame)
         frame.Health.UpdateColor = updateHealthColor
         frame.Power.UpdateColor = updatePowerColor
-        CreateHealthText(frame)
+        CreateHealthText{frame=frame}
         CreateNameText{frame=frame}
 
         if(select(2, UnitClass('player')) == 'DEATHKNIGHT') then
@@ -628,6 +651,7 @@ local function StyleFunc(frame, unit)
 
     elseif unit == 'target' then
         addMainBorder(frame) 
+        frame:SetSize(unpack(defaultFrameSize))
         frame.Health = CreateHealthBar(frame, unit)
         frame.Power = CreatePowerBar(frame, unit)
         frame.Castbar = CreateCastBar(frame, unit)
@@ -645,21 +669,37 @@ local function StyleFunc(frame, unit)
         createHealthPrediction(frame)
         frame.Health.UpdateColor = updateHealthColor
         frame.Power.UpdateColor = updatePowerColor
-        CreateHealthText(frame)
+        CreateHealthText{frame=frame}
         CreateNameText{frame=frame}
 
-        frame.Auras = CreateBuffs(frame)
+        frame.Auras = CreateBuffs{frame=frame}
     end
+
+	if unit == 'party' or unit == 'raid'  then
+        frame:SetSize(unpack(defaultFrameSizeParty))
+        frame.Health = CreateHealthBar(frame, unit)
+        frame.Health:SetPoint('BOTTOMRIGHT', frame, 'BOTTOMRIGHT', 0, defaultPartyPowerBarHeight)
+        frame.Power = CreatePowerBar(frame, unit)
+
+        createHealthPrediction(frame)
+        frame.Health.UpdateColor = updateHealthColor
+        frame.Power.UpdateColor = updatePowerColor
+        CreateHealthText{frame=frame, anchor={"RIGHT", frame.Health, "RIGHT", -2, -1}, tag='[ >dyk:perhp]'}
+        frame.NameText = CreateNameText{frame=frame, size=12, anchor={"LEFT", frame.Health, "LEFT", 2, 0}}
+
+        frame.Auras = CreateBuffs{frame=frame, buffsize=16, disableMouse=true, anchor='RIGHT'}
+	end
 end
 
-local function NamePlateStyleFunc(frame, unit) 
-    frame:SetSize(unpack(nameplateFrameSize));
+local function NamePlateStyleFunc(frame, unit)
+    frame:SetSize(unpack(defaultNameplateFrameSize));
     frame:SetPoint('CENTER')
     frame.unittype = 'nameplate'
 
-    frame.Health = CreateHealthBar(frame, unit) 
-    frame.NameText = CreateNameText{frame=frame, size=9, align='CENTER', shadow=true}
-    frame.Auras = CreateBuffs(frame, 16, true)
+    frame.Health = CreateHealthBar(frame, unit)
+    frame.NameText = CreateNameText{frame=frame, size=9, align='CENTER', shadow=true, anchor={"CENTER", frame.Health, "TOP", 0, -2}}
+
+    frame.Auras = CreateBuffs{frame=frame, buffsize=16, disableMouse=true}
     frame.Castbar = CreateCastBar(frame, unit, false)
     frame.Castbar:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 0, 2)
     frame.Castbar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
@@ -675,6 +715,18 @@ oUF:Factory(function(self)
     self:SetActiveStyle(addonName.."Style") 
     self:Spawn("player", addonName.."PlayerFrame"):SetPoint("TOPRIGHT", nil, "CENTER", coordMainHealthX, coordMainHealthY) 
     self:Spawn("target", addonName.."TargetFrame"):SetPoint("TOPLEFT", nil, "CENTER", -coordMainHealthX, coordMainHealthY)
+
+	self:SpawnHeader(nil, nil, 'custom [group:party] show; [@raid3,exists] show; [@raid26,exists] hide; hide',
+		'showParty', true,
+		'showRaid', true,
+		'yOffset', -10,
+		'groupBy', 'ASSIGNEDROLE',
+		'groupingOrder', 'TANK,HEALER,DAMAGER',
+		'oUF-initialConfigFunction', [[
+			self:SetHeight(19)
+			self:SetWidth(126)
+		]]
+	):SetPoint('TOPLEFT', 10, -10)
 
     self:SetActiveStyle(addonName.."NameplateStyle") 
     self:SpawnNamePlates(addonName, updateNameplate)
