@@ -56,14 +56,3 @@ end
 addon.helpers.round = function(num)
     return math.floor(num + 0.5)
 end
-
-addon.helpers.lightenColor = function(color, degree)
-    local newcolor = {}
-    degree = degree or 1
-
-    for i, val in pairs(color) do
-        newcolor[i] = 1 - ((1 - val) * 1/(1 + degree))
-    end
-
-    return newcolor
-end

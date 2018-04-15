@@ -8,10 +8,9 @@
 --  - flesh out party frames with class colors etc
 --  - combat color infobar only red when tanking
 --  - rework check which npc has power
---  - target castbar channel name!
---  - make reaction colors lighter, at least for text
 --  - vehicles
 --  - maybe: loss of control timer?
+--  - fix name text for dead units
 --
 --]]
 
@@ -61,11 +60,9 @@ local dykColors = {
         ['POWER_TYPE_RED_POWER'] = PowerBarColor['RAGE'],
         ['POWER_TYPE_FOCUS'] = PowerBarColor['FOCUS'],
     },
-    reaction = {}
+    reaction = {
+    }
 }
-for i, color in pairs(oUF.colors.reaction) do
-   dykColors['reaction'][i] = helpers.lightenColor(color, 0.5)
-end
 
 local defaultInfoBorderColor = {100, 100, 100}
 local defaultBorderColor = {0, 0, 0}
@@ -230,6 +227,7 @@ local function getClassOrReactionColor(unit)
     else
         reaction = UnitReaction(unit, 'player')
         color = dykColors['reaction'][reaction] or oUF.colors.reaction[reaction] 
+        --color = oUF.colors.reaction[reaction] 
     end 
 
     return color
