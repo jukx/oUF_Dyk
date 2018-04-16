@@ -6,11 +6,8 @@
 --  - test all classes
 --  - rework check which npc has power
 --  - vehicles
+--  - party bg less translucent?
 --  - maybe: loss of control timer?
---  - fix name text for dead units
---  - additional power bar (oUF)
---  - stagger bar
---  - party bg less translucent
 --
 --]]
 
@@ -46,6 +43,7 @@ local castbarHeight = 30
 local castbarWidth = 300
 local defaultClassPowerBarHeight = 15
 local defaultPartyPowerBarHeight = 4
+local defaultAltPowerBarHeight = 20
 
 local defaultPowerBarFontSize = 14
 local defaultCastBarFontSize = 14
@@ -400,7 +398,6 @@ local function createHealthPrediction(frame)
     }
 end
 
--- Create Health Text
 local function CreateHealthText(args)
     local frame = args.frame
     local anchor = args.anchor or {"CENTER", frame, "CENTER", 0, -2}
@@ -478,6 +475,20 @@ local function CreateClassPower(frame, maxClasspower)
     end
 
     return classPower
+end
+
+local function CreateAdditionalPowerBar(frame)
+    local power = CreateStatusBar{frame=frame, color={1, 1, 1}, bgColor=getColor(defaultPowerBarBgColor), drawShadow=true, shadowWidth=1}
+    power:SetPoint("TOPLEFT", frame.Power, "TOPLEFT", 0, 1)
+    power:SetPoint("BOTTOMRIGHT", frame.Power, "TOPRIGHT", 0, 3)
+
+    return power
+end
+
+local function CreateAlternativePowerBar(frame)
+    local power = CreateStatusBar{frame=frame, color={1, 0.7, 0}, bgColor=getColor(defaultPowerBarBgColor), drawShadow=true, shadowWidth=4}
+
+    return power
 end
 
 -- Create cast bar
@@ -657,12 +668,20 @@ local function StyleFunc(frame, unit)
     if unit == 'player' then
         addMainBorder(frame) 
         frame:SetSize(unpack(defaultFrameSize))
+
         frame.Health = CreateHealthBar(frame, unit)
+        frame.Health.UpdateColor = updateHealthColor
         frame.Power = CreatePowerBar(frame, unit)
         frame.Power:SetPoint("TOPLEFT", nil, "CENTER", -powerBarWidth/2, coordMainHealthY + padding + powerBarHeight)
         frame.Power:SetPoint("BOTTOMRIGHT", nil, "CENTER", powerBarWidth/2, coordMainHealthY + padding)
+        frame.Power.UpdateColor = updatePowerColor
         frame.PowerText = CreatePowerText(frame)
         frame.ClassPower = CreateClassPower(frame)
+        frame.AdditionalPower = CreateAdditionalPowerBar(frame)
+        frame.AdditionalPower.colorPower = true
+        frame.AlternativePower = CreateAlternativePowerBar(frame)
+        frame.AlternativePower:SetPoint("TOPLEFT", frame.Health, "TOPLEFT", -2, defaultAltPowerBarHeight + padding)
+        frame.AlternativePower:SetPoint("BOTTOMRIGHT", frame.Power, "BOTTOMLEFT", -padding, 0)
         frame.Castbar = CreateCastBar(frame, unit)
         frame.Castbar:SetPoint("TOPLEFT", nil, "CENTER", coordMainHealthX + padding, coordMainHealthY)
         frame.Castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", -coordMainHealthX - padding, coordMainHealthY - castbarHeight)
@@ -689,6 +708,17 @@ local function StyleFunc(frame, unit)
         frame:SetSize(unpack(defaultFrameSize))
         frame.Health = CreateHealthBar(frame, unit)
         frame.Power = CreatePowerBar(frame, unit)
+        frame.AlternativePower = CreateAlternativePowerBar(frame)
+        frame.AlternativePower:SetPoint("TOPRIGHT", frame.Health, "TOPRIGHT", 2, defaultAltPowerBarHeight + padding)
+        frame.AlternativePower:SetPoint("BOTTOMLEFT", ouf_dyk_PlayerFrame.Power, "BOTTOMRIGHT", padding , 0)
+
+        createHealthPrediction(frame)
+        frame.Health.UpdateColor = updateHealthColor
+        frame.Power.UpdateColor = updatePowerColor
+        CreateHealthText{frame=frame, shadow=true}
+        CreateNameText{frame=frame, shadow=true}
+        frame.Auras = CreateBuffs{frame=frame}
+
         frame.Castbar = CreateCastBar(frame, unit)
         frame.Castbar:SetPoint("TOPLEFT", nil, "CENTER", -castbarWidth/2, coordTargetCastBarY + castbarHeight)
         frame.Castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", castbarWidth/2, coordTargetCastBarY)
@@ -701,13 +731,6 @@ local function StyleFunc(frame, unit)
         frame:RegisterEvent('UNIT_TARGET', targetChangedHandler, unitless)
         frame:HookScript("OnEvent", targetChangedHandler)
 
-        createHealthPrediction(frame)
-        frame.Health.UpdateColor = updateHealthColor
-        frame.Power.UpdateColor = updatePowerColor
-        CreateHealthText{frame=frame}
-        CreateNameText{frame=frame}
-
-        frame.Auras = CreateBuffs{frame=frame}
     end
 
 	if unit == 'party' or unit == 'raid'  then
@@ -742,14 +765,14 @@ local function NamePlateStyleFunc(frame, unit)
 end
 
 -- Register style with oUF
-oUF:RegisterStyle(addonName.."Style", StyleFunc)
-oUF:RegisterStyle(addonName.."NameplateStyle", NamePlateStyleFunc)
+oUF:RegisterStyle(addonName.."_Style", StyleFunc)
+oUF:RegisterStyle(addonName.."_NameplateStyle", NamePlateStyleFunc)
 
 -- Set up oUF factory
 oUF:Factory(function(self)
-    self:SetActiveStyle(addonName.."Style") 
-    self:Spawn("player", addonName.."PlayerFrame"):SetPoint("TOPRIGHT", nil, "CENTER", coordMainHealthX, coordMainHealthY) 
-    self:Spawn("target", addonName.."TargetFrame"):SetPoint("TOPLEFT", nil, "CENTER", -coordMainHealthX, coordMainHealthY)
+    self:SetActiveStyle(addonName.."_Style") 
+    playerFrame = self:Spawn("player", "ouf_dyk_PlayerFrame"):SetPoint("TOPRIGHT", nil, "CENTER", coordMainHealthX, coordMainHealthY) 
+    self:Spawn("target", "ouf_dyk_TargetFrame"):SetPoint("TOPLEFT", nil, "CENTER", -coordMainHealthX, coordMainHealthY)
 
 	self:SpawnHeader(nil, nil, 'custom [group:party] show; [@raid3,exists] show; [@raid26,exists] hide; hide',
 		'showParty', true,
@@ -763,6 +786,6 @@ oUF:Factory(function(self)
 		]]
 	):SetPoint('TOPLEFT', 10, -10)
 
-    self:SetActiveStyle(addonName.."NameplateStyle") 
+    self:SetActiveStyle(addonName.."_NameplateStyle") 
     self:SpawnNamePlates(addonName, updateNameplate)
 end)
