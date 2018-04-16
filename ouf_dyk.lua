@@ -11,6 +11,8 @@
 --  - vehicles
 --  - maybe: loss of control timer?
 --  - fix name text for dead units
+--  - additional power bar (oUF)
+--  - stagger bar
 --
 --]]
 
@@ -420,10 +422,16 @@ local function CreateNameText(args)
     local frame = args.frame
     local anchor = args.anchor or {"TOPLEFT", frame.Health, "TOPLEFT", 2, -2}
     args.frame = frame.Health
+    local classColor = args.classColor
 
     local text = createText(args) 
     text:SetPoint(unpack(anchor)) 
-    frame:Tag(text, '[name]')
+    
+    local colorTag = ""
+    if classColor then
+        colorTag = "[raidcolor]"
+    end
+    frame:Tag(text, colorTag .. "[name]")
 
     return text
 end
@@ -608,6 +616,14 @@ local function updateCastBar(frame, unit, name)
     end
 end
 
+local function updatePartyHealth(frame, unit, cur, max)
+    local color = getClassOrReactionColor(unit)
+
+    if color then
+        color = {color[1], color[2], color[3], 0.4}
+        frame.bg:SetColorTexture(unpack(color))
+    end
+end
 
 --
 -- Event handlers
@@ -687,14 +703,14 @@ local function StyleFunc(frame, unit)
         frame:SetSize(unpack(defaultFrameSizeParty))
         frame.Health = CreateHealthBar(frame, unit)
         frame.Health:SetPoint('BOTTOMRIGHT', frame, 'BOTTOMRIGHT', 0, defaultPartyPowerBarHeight)
+        frame.Health.PostUpdate = updatePartyHealth
         frame.Power = CreatePowerBar(frame, unit)
 
         createHealthPrediction(frame)
         frame.Health.UpdateColor = updateHealthColor
         frame.Power.UpdateColor = updatePowerColor
         CreateHealthText{frame=frame, anchor={"RIGHT", frame.Health, "RIGHT", -2, -1}, tag='[ >dyk:perhp]'}
-        frame.NameText = CreateNameText{frame=frame, size=12, anchor={"LEFT", frame.Health, "LEFT", 2, 0}}
-
+        frame.NameText = CreateNameText{frame=frame, size=12, classColor=true, anchor={"LEFT", frame.Health, "LEFT", 2, 0}} 
         frame.Auras = CreateBuffs{frame=frame, buffsize=16, disableMouse=true, anchor='RIGHT'}
 	end
 end
