@@ -33,6 +33,7 @@ local defaultFont = [[Interface\AddOns\ouf_dyk\fonts\roboto-medium.ttf]]
 -- Measures
 local defaultFrameSize = {200, 48}
 local defaultFrameSizeParty = {160, 28}
+local defaultFrameSizePet = {150, 20}
 local defaultNameplateFrameSize = {120, 18}
 local padding = 7  -- between frames
 local outlineWidth = 1
@@ -404,10 +405,16 @@ local function CreateHealthText(args)
     local frame = args.frame
     local anchor = args.anchor or {"CENTER", frame, "CENTER", 0, -2}
     local tag = args.tag or '[dyk:status][dyk:curhp][ >dyk:perhp]'
+    local classColor = args.classColor
     args.frame = frame.Health
 
     local text = createText(args)
     text:SetPoint(unpack(anchor))
+    
+    local colorTag = ""
+    if classColor then
+        tag = "[raidcolor]" .. tag
+    end
     frame:Tag(text, tag)
 
     return text
@@ -416,8 +423,8 @@ end
 local function CreateNameText(args)
     local frame = args.frame
     local anchor = args.anchor or {"TOP", frame.Health, "TOP", 0, -2}
-    args.frame = frame.Health
     local classColor = args.classColor
+    args.frame = frame.Health
 
     local text = createText(args) 
     text:SetPoint(unpack(anchor)) 
@@ -730,6 +737,17 @@ local function StyleFunc(frame, unit)
 
     end
 
+	if unit == 'pet' then
+        frame:SetPoint('TOPLEFT', ouf_dyk_PlayerFrame, 'BOTTOMLEFT', 0, -padding)
+        frame:SetSize(unpack(defaultFrameSizePet))
+        frame.Health = CreateHealthBar(frame, unit)
+        frame.Health:SetAllPoints()
+
+        frame.Health.UpdateColor = updateHealthColor
+        CreateHealthText{frame=frame, size=12, shadow=true, anchor={"RIGHT", frame.Health, "RIGHT", -2, 0}, tag='[ >dyk:perhp]'}
+        frame.NameText = CreateNameText{frame=frame, size=12, shadow=true, anchor={"LEFT", frame.Health, "LEFT", 2, 0}} 
+	end
+
 	if unit == 'party' or unit == 'raid'  then
         frame:SetSize(unpack(defaultFrameSizeParty))
         frame.Health = CreateHealthBar(frame, unit)
@@ -770,6 +788,7 @@ oUF:Factory(function(self)
     self:SetActiveStyle(addonName.."_Style") 
     playerFrame = self:Spawn("player", "ouf_dyk_PlayerFrame"):SetPoint("TOPRIGHT", nil, "CENTER", coordMainHealthX, coordMainHealthY) 
     self:Spawn("target", "ouf_dyk_TargetFrame"):SetPoint("TOPLEFT", nil, "CENTER", -coordMainHealthX, coordMainHealthY)
+    self:Spawn("pet", "ouf_dyk_PetFrame")
 
 	self:SpawnHeader(nil, nil, 'custom [group:party] show; [@raid3,exists] show; [@raid26,exists] hide; hide',
 		'showParty', true,
