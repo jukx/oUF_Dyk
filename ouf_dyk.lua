@@ -55,8 +55,8 @@ local defaultBarColor = {26, 25, 23}
 local dykColors = {
     power = {
         ['MANA'] = { r = 36/255, g = 110/255, b = 229/255 },
-        ['POWER_TYPE_RED_POWER'] = PowerBarColor['RAGE'],
-        ['POWER_TYPE_FOCUS'] = PowerBarColor['FOCUS'],
+        --['POWER_TYPE_RED_POWER'] = PowerBarColor['RAGE'],
+        --['POWER_TYPE_FOCUS'] = PowerBarColor['FOCUS'],
     },
     reaction = {
     }
@@ -315,9 +315,9 @@ end
 local function getPowerBarColor(unit)
     local powerToken
     local color = {}
-    _, powerToken = UnitPowerType(unit);
+    powerId, powerToken = UnitPowerType(unit);
     powerToken = powerToken or 'MANA' 
-    local color_ = dykColors.power[powerToken] or PowerBarColor[powerToken]
+    local color_ = dykColors.power[powerToken] or PowerBarColor[powerId]
 
     if not color_ then
         print("Error:")
@@ -430,10 +430,7 @@ local function CreateNameText(args)
     return text
 end
 
---create power statusbar func
 local function CreatePowerBar(frame, unit)
-    local color = getPowerBarColor(unit)
-
     local power = CreateStatusBar{frame=frame, color=getPowerBarColor(unit), bgColor=getColor(defaultPowerBarBgColor), drawShadow=true, shadowWidth=4}
     power:SetPoint("TOPLEFT", frame.Health, "BOTTOMLEFT", 0, -outlineWidth)
     power:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
