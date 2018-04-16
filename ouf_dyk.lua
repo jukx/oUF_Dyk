@@ -3,10 +3,7 @@
 -- oUF Dyk
 --
 -- TODO:
---  - rework function parameter passing to named params
 --  - test all classes
---  - flesh out party frames with class colors etc
---  - combat color infobar only red when tanking
 --  - rework check which npc has power
 --  - vehicles
 --  - maybe: loss of control timer?
@@ -81,7 +78,6 @@ local defaultCastBarBgColor = {0, 0, 0, 0.5}
 local defaultHealthBarBgGradientColor1 = {255, 0, 0}
 local defaultHealthBarBgGradientColor2 = {226, 209, 124}
 local defaultHealthBarBgAlpha = 0.8
-local defaultCombatIndicatorColor = {200, 200, 200}
 
 -- End config
 
