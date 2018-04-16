@@ -10,6 +10,7 @@
 --  - fix name text for dead units
 --  - additional power bar (oUF)
 --  - stagger bar
+--  - party bg less translucent
 --
 --]]
 
@@ -540,6 +541,15 @@ local function CreateBuffs(args)
     return Buffs
 end
 
+local function CreateStaggerBar(frame)
+    local stagger = CreateStatusBar{frame=frame, color={1, 1, 1}, bgColor={1, 1, 1, 0.3}, drawShadow=true, shadowWidth=2}
+    stagger:SetPoint('BOTTOMLEFT', frame.Power, 'TOPLEFT', 0, 1)
+    stagger:SetPoint('TOPRIGHT', frame.Power, 'TOPRIGHT', 0, 1 + 15)
+
+    return stagger
+end
+
+
 --
 -- Update functions
 --
@@ -658,9 +668,10 @@ local function StyleFunc(frame, unit)
         frame.Castbar:SetPoint("BOTTOMRIGHT", nil, "CENTER", -coordMainHealthX - padding, coordMainHealthY - castbarHeight)
         frame.Castbar.Text = CreateCastBarText(frame)
         frame.Castbar.PostCastStart = updateCastBar
-
         frame.ThreatIndicator = createInfoBorderIndicator(frame)
         frame.CombatIndicator = createInfoBorderIndicator(frame) 
+        frame.Stagger = CreateStaggerBar(frame)
+        frame.Stagger.bg.multiplier = 0.5
 
         createHealthPrediction(frame)
         frame.Health.UpdateColor = updateHealthColor
