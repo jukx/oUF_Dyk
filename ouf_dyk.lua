@@ -5,7 +5,6 @@
 -- TODO:
 --  - test all classes
 --  - rework check which npc has power
---  - vehicles
 --  - party bg less translucent?
 --  - maybe: loss of control timer?
 --
