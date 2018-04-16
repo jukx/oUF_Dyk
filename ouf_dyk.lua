@@ -508,9 +508,12 @@ local function CreateCastBarText(frame, size)
     return text
 end
 
-local function createCombatIndicator(frame)
-    indicator = CreateStatusBar{frame=frame.InfoBorder, color=defaultCombatIndicatorColor}
+local function createInfoBorderIndicator(frame)
+    local indicatorFrame = CreateFrame("Frame", nil, frame.InfoBorder)
+    indicatorFrame:SetAllPoints()
+    local indicator = indicatorFrame:CreateTexture(nil, 'OVERLAY')
     indicator:SetAllPoints()
+    indicator:SetColorTexture(1, 1, 1)
 
     return indicator
 end
@@ -660,7 +663,8 @@ local function StyleFunc(frame, unit)
         frame.Castbar.Text = CreateCastBarText(frame)
         frame.Castbar.PostCastStart = updateCastBar
 
-        frame.CombatIndicator = createCombatIndicator(frame)
+        frame.ThreatIndicator = createInfoBorderIndicator(frame)
+        frame.CombatIndicator = createInfoBorderIndicator(frame) 
 
         createHealthPrediction(frame)
         frame.Health.UpdateColor = updateHealthColor
