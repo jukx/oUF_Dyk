@@ -1,8 +1,8 @@
 ## Interface: 70300
 ## Author: jukx
-## Notes: layout for oUF
+## Notes: Layout for oUF
 ## Title: oUF Dyk
-## Version: 0.1
+## Version: 0.1.1
 ## Dependencies: oUF
 
 helpers.lua
