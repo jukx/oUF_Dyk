@@ -120,6 +120,7 @@ registerTag('dyk:status',
 registerTag('dyk:perhp',  
             'UNIT_HEALTH_FREQUENT UNIT_MAXHEALTH',
             function(unit)
+                if getStatus(unit) then return end
                 local curhp = UnitHealth(unit)
                 local maxhp = UnitHealthMax(unit)
                 if unit == 'player' and (getStatus(unit) or curhp == maxhp) then return end
@@ -142,6 +143,7 @@ registerTag('dyk:maxhp',
 registerTag('dyk:curhp',  
             'UNIT_HEALTH_FREQUENT UNIT_MAXHEALTH',
             function(unit)
+                if getStatus(unit) then return end
                 local curhp = UnitHealth(unit)
                 local maxhp = UnitHealthMax(unit)
                 if unit == 'player' and (getStatus(unit) or curhp == maxhp) then return end
@@ -411,10 +413,9 @@ local function CreateHealthText(args)
     return text
 end
 
--- Create Health Text
 local function CreateNameText(args)
     local frame = args.frame
-    local anchor = args.anchor or {"TOPLEFT", frame.Health, "TOPLEFT", 2, -2}
+    local anchor = args.anchor or {"TOP", frame.Health, "TOP", 0, -2}
     args.frame = frame.Health
     local classColor = args.classColor
 
@@ -440,7 +441,7 @@ end
 
 -- Create Power Text
 local function CreatePowerText(frame)
-    local text = createText{frame=frame.Power, size=defaultPowerBarFontSize}
+    local text = createText{frame=frame.Power, size=defaultPowerBarFontSize, shadow=true}
 
     text:SetPoint("CENTER", frame.Power, "CENTER")
     frame:Tag(text, '[perpp<%]')
@@ -686,18 +687,17 @@ local function StyleFunc(frame, unit)
         frame.Castbar.PostCastStart = updateCastBar
         frame.ThreatIndicator = createInfoBorderIndicator(frame)
         frame.CombatIndicator = createInfoBorderIndicator(frame) 
-        frame.Stagger = CreateStaggerBar(frame)
-        frame.Stagger.bg.multiplier = 0.5
 
         createHealthPrediction(frame)
-        frame.Health.UpdateColor = updateHealthColor
-        frame.Power.UpdateColor = updatePowerColor
-        CreateHealthText{frame=frame}
-        CreateNameText{frame=frame}
+        CreateHealthText{frame=frame, shadow=true}
+        CreateNameText{frame=frame, shadow=true}
 
-        if(select(2, UnitClass('player')) == 'DEATHKNIGHT') then
+        if (select(2, UnitClass('player')) == 'DEATHKNIGHT') then
             frame.Runes = CreateClassPower(frame, 6)
             frame.Runes.colorSpec = true
+        elseif (select(2, UnitClass('player')) == 'MONK') then
+            frame.Stagger = CreateStaggerBar(frame)
+            frame.Stagger.bg.multiplier = 0.5
         end 
 
     elseif unit == 'target' then
