@@ -1,15 +1,3 @@
---[[
---
--- oUF Dyk
---
--- TODO:
---  - test all classes
---  - rework check which npc has power
---  - party bg less translucent?
---  - maybe: loss of control timer?
---
---]]
-
 -- Get addon data
 local addonName, addon = ...
 local helpers = addon.helpers
@@ -169,7 +157,7 @@ local function getColor(color)
 end
 
 local function addBorder(frame, thickness, color, texture)
-    if not color then color = getColor(defaultBorderColor) end
+    color = color or getColor(defaultBorderColor)
 
     local border = CreateFrame("Frame", nil, frame)
     local backdrop = {
@@ -334,6 +322,13 @@ local function getPowerBarColor(unit)
     end
 
     return color
+end
+
+local function createFloatingFrame(frame)
+    float = CreateFrame("StatusBar", nil, frame)
+    float:SetFrameLevel(float:GetFrameLevel() + 2)
+
+    return float
 end
 
 --
@@ -767,12 +762,18 @@ local function NamePlateStyleFunc(frame, unit)
     frame:SetSize(unpack(defaultNameplateFrameSize));
     frame:SetPoint('CENTER')
     frame.unittype = 'nameplate'
+    frame.Float = createFloatingFrame(frame)
 
     frame.Health = CreateHealthBar(frame, unit)
-    frame.NameText = CreateNameText{frame=frame, size=defaultNameplateFontSize, align='CENTER', shadow=true, anchor={"CENTER", frame.Health, "TOP", 0, -2}}
-
+    frame.NameText = CreateNameText{frame=frame, size=defaultNameplateFontSize, align='CENTER', shadow=true, anchor={"CENTER", frame.Health, "TOP", 0, -2}} 
     frame.Auras = CreateBuffs{frame=frame, buffsize=16, disableMouse=true}
-    frame.Castbar = CreateCastBar(frame, unit, false)
+
+    local RaidIcon = frame.Float:CreateTexture(nil, 'OVERLAY')
+    RaidIcon:SetPoint('CENTER', frame, 'RIGHT', 0, 0)
+    RaidIcon:SetSize(16, 16)
+    frame.RaidTargetIndicator = RaidIcon
+
+    frame.Castbar = CreateCastBar(frame.Float, unit, false)
     frame.Castbar:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 0, 2)
     frame.Castbar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
     frame.Castbar.Text = CreateCastBarText(frame, 8)
