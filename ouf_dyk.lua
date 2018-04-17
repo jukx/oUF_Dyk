@@ -21,6 +21,7 @@ local defaultFont = [[Interface\AddOns\ouf_dyk\fonts\roboto-medium.ttf]]
 local defaultFrameSize = {200, 48}
 local defaultFrameSizeParty = {160, 28}
 local defaultFrameSizePet = {150, 20}
+local defaultFrameSizeTargetTarget = {120, 25}
 local defaultNameplateFrameSize = {120, 18}
 local padding = 7  -- between frames
 local outlineWidth = 1
@@ -43,8 +44,6 @@ local defaultBarColor = {26, 25, 23}
 local dykColors = {
     power = {
         ['MANA'] = { r = 36/255, g = 110/255, b = 229/255 },
-        --['POWER_TYPE_RED_POWER'] = PowerBarColor['RAGE'],
-        --['POWER_TYPE_FOCUS'] = PowerBarColor['FOCUS'],
     },
     reaction = {
     }
@@ -136,6 +135,17 @@ registerTag('dyk:curhp',
                 local maxhp = UnitHealthMax(unit)
                 if unit == 'player' and (getStatus(unit) or curhp == maxhp) then return end
                 return condenseNumber(curhp)
+            end
+    )
+
+registerTag('dyk:shortname',  
+            'UNIT_NAME_UPDATE',
+            function(unit, r)
+                local name = UnitName(r or unit)
+                if #name > 8 then
+                    name = name:sub(0, 7) .. '...'
+                end 
+                return name
             end
     )
 
@@ -417,6 +427,7 @@ end
 local function CreateNameText(args)
     local frame = args.frame
     local anchor = args.anchor or {"TOP", frame.Health, "TOP", 0, -2}
+    local tag = args.tag or '[name]'
     local classColor = args.classColor
     args.frame = frame.Health
 
@@ -426,8 +437,9 @@ local function CreateNameText(args)
     local colorTag = ""
     if classColor then
         colorTag = "[raidcolor]"
+        tag = "[raidcolor]" .. tag
     end
-    frame:Tag(text, colorTag .. "[name]")
+    frame:Tag(text, tag)
 
     return text
 end
@@ -609,15 +621,19 @@ end
 local function updateNameplate(frame, event, unit)
     local color = getClassOrReactionColor(unit)
 
-    if color then
-        frame.NameText:SetTextColor(unpack(color))
-        color = {color[1], color[2], color[3], 0.4}
-        frame.Health.bg:SetColorTexture(unpack(color))
-    end
-end
+    if unit == 'target' then
+        for _, np in pairs(C_NamePlate.GetNamePlates()) do
+            if np.unitFrame.TargetBorder then
+                np.unitFrame.TargetBorder:Hide()
+            end
+        end
 
-local function updateNameplate(frame, event, unit)
-    local color = getClassOrReactionColor(unit)
+        if frame.TargetBorder then
+            frame.TargetBorder:Show()
+        else
+            frame.TargetBorder = addBorder(frame, 5, {1, 1, 1})
+        end
+    end
 
     if color then
         frame.NameText:SetTextColor(unpack(color))
@@ -731,6 +747,17 @@ local function StyleFunc(frame, unit)
 
     end
 
+	if unit == 'targettarget' then
+        frame:SetPoint('TOPLEFT', ouf_dyk_TargetFrame, 'TOPRIGHT', padding, 0)
+        frame:SetSize(unpack(defaultFrameSizeTargetTarget))
+        frame.Health = CreateHealthBar(frame, unit)
+        frame.Health:SetAllPoints()
+
+        frame.Health.UpdateColor = updateHealthColor
+        CreateHealthText{frame=frame, size=12, shadow=true, anchor={"RIGHT", frame.Health, "RIGHT", -2, 0}, tag='[ >dyk:perhp]'}
+        frame.NameText = CreateNameText{frame=frame, size=12, shadow=true, anchor={"LEFT", frame.Health, "LEFT", 2, 0}, tag='[dyk:shortname]'}
+	end
+
 	if unit == 'pet' then
         frame:SetPoint('TOPLEFT', ouf_dyk_PlayerFrame, 'BOTTOMLEFT', 0, -padding)
         frame:SetSize(unpack(defaultFrameSizePet))
@@ -739,23 +766,25 @@ local function StyleFunc(frame, unit)
 
         frame.Health.UpdateColor = updateHealthColor
         CreateHealthText{frame=frame, size=12, shadow=true, anchor={"RIGHT", frame.Health, "RIGHT", -2, 0}, tag='[ >dyk:perhp]'}
-        frame.NameText = CreateNameText{frame=frame, size=12, shadow=true, anchor={"LEFT", frame.Health, "LEFT", 2, 0}} 
+        frame.NameText = CreateNameText{frame=frame, size=12, shadow=true, anchor={"LEFT", frame.Health, "LEFT", 2, 0}}
 	end
+end
 
-	if unit == 'party' or unit == 'raid'  then
-        frame:SetSize(unpack(defaultFrameSizeParty))
-        frame.Health = CreateHealthBar(frame, unit)
-        frame.Health:SetPoint('BOTTOMRIGHT', frame, 'BOTTOMRIGHT', 0, defaultPartyPowerBarHeight)
-        frame.Health.PostUpdate = updatePartyHealth
-        frame.Power = CreatePowerBar(frame, unit)
+local function PartyStyleFunc(frame, unit)
+	frame:RegisterForClicks('AnyUp')  -- to enable rightclick menu
 
-        createHealthPrediction(frame)
-        frame.Health.UpdateColor = updateHealthColor
-        frame.Power.UpdateColor = updatePowerColor
-        CreateHealthText{frame=frame, anchor={"RIGHT", frame.Health, "RIGHT", -2, -1}, tag='[ >dyk:perhp]'}
-        frame.NameText = CreateNameText{frame=frame, size=12, classColor=true, anchor={"LEFT", frame.Health, "LEFT", 2, 0}} 
-        frame.Auras = CreateBuffs{frame=frame, buffsize=16, disableMouse=true, anchor='RIGHT'}
-	end
+    frame:SetSize(unpack(defaultFrameSizeParty))
+    frame.Health = CreateHealthBar(frame, unit)
+    frame.Health:SetPoint('BOTTOMRIGHT', frame, 'BOTTOMRIGHT', 0, defaultPartyPowerBarHeight)
+    frame.Health.PostUpdate = updatePartyHealth
+    frame.Power = CreatePowerBar(frame, unit)
+
+    createHealthPrediction(frame)
+    frame.Health.UpdateColor = updateHealthColor
+    frame.Power.UpdateColor = updatePowerColor
+    CreateHealthText{frame=frame, anchor={"RIGHT", frame.Health, "RIGHT", -2, -1}, tag='[ >dyk:perhp]'}
+    frame.NameText = CreateNameText{frame=frame, size=12, classColor=true, anchor={"LEFT", frame.Health, "LEFT", 2, 0}} 
+    frame.Auras = CreateBuffs{frame=frame, buffsize=16, disableMouse=true, anchor='RIGHT'}
 end
 
 local function NamePlateStyleFunc(frame, unit)
@@ -781,6 +810,7 @@ end
 
 -- Register style with oUF
 oUF:RegisterStyle(addonName.."_Style", StyleFunc)
+oUF:RegisterStyle(addonName.."_PartyStyle", NamePlateStyleFunc)
 oUF:RegisterStyle(addonName.."_NameplateStyle", NamePlateStyleFunc)
 
 -- Set up oUF factory
@@ -788,8 +818,10 @@ oUF:Factory(function(self)
     self:SetActiveStyle(addonName.."_Style") 
     playerFrame = self:Spawn("player", "ouf_dyk_PlayerFrame"):SetPoint("TOPRIGHT", nil, "CENTER", coordMainHealthX, coordMainHealthY) 
     self:Spawn("target", "ouf_dyk_TargetFrame"):SetPoint("TOPLEFT", nil, "CENTER", -coordMainHealthX, coordMainHealthY)
+    self:Spawn("targettarget", "ouf_dyk_TargetFrame")
     self:Spawn("pet", "ouf_dyk_PetFrame")
 
+    self:SetActiveStyle(addonName.."_PartyStyle") 
 	self:SpawnHeader(nil, nil, 'custom [group:party] show; [@raid3,exists] show; [@raid26,exists] hide; hide',
 		'showParty', true,
 		'showRaid', true,
