@@ -803,5 +803,10 @@ oUF:Factory(function(self)
 	):SetPoint('TOPLEFT', 10, -10)
 
     self:SetActiveStyle(addonName.."_NameplateStyle") 
-    self:SpawnNamePlates(addonName, updateNameplate)
+    local nameplateCvars = {
+        nameplateMinAlpha = 0.5,
+        nameplateMaxAlpha = 0.8,
+        nameplateSelectedScale = 1.1,
+    }
+    self:SpawnNamePlates(addonName, updateNameplate, nameplateCvars)
 end)
