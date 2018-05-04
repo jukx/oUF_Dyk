@@ -521,13 +521,9 @@ local function CreateCastBarText(frame, size)
 end
 
 local function createInfoBorderIndicator(frame)
-    local indicatorFrame = CreateFrame("Frame", nil, frame.InfoBorder)
-    indicatorFrame:SetAllPoints()
-    local indicator = indicatorFrame:CreateTexture(nil, 'OVERLAY')
-    indicator:SetAllPoints()
-    indicator:SetColorTexture(1, 1, 1)
+    local indicatorFrame = CreateFrame("Frame", nil, frame)
 
-    return indicator
+    return indicatorFrame
 end
 
 local function CreateBuffs(args)
@@ -673,6 +669,48 @@ local function targetChangedHandler(frame, event)
     end
 end
 
+local function updateInfoBorderCombatColor(frame)
+    local combatColor
+
+    if frame.CombatIndicator.status then
+        if frame.ThreatIndicator.status then
+            combatColor = {1, 0, 0}
+        else
+            combatColor = {1, 1, 1}
+        end
+    else
+        combatColor = getColor(defaultInfoBorderColor)
+    end
+
+    frame:setInfoBorderColor(combatColor)
+end
+
+local function updateThreat(frame, unit, status)
+    if not status then return end
+
+    local unitFrame = frame:GetParent()
+
+    if tonumber(status) >= 2 then
+        frame.status = true
+    else
+        frame.status = false
+    end
+
+    updateInfoBorderCombatColor(unitFrame)
+end
+
+local function updateCombat(frame, inCombat)
+    local unitFrame = frame:GetParent()
+
+    if inCombat then
+        frame.status = true
+    else
+        frame.status = false
+    end
+
+    updateInfoBorderCombatColor(unitFrame)
+end
+
 -- Create Style
 local function StyleFunc(frame, unit)
 	frame:RegisterForClicks('AnyUp')  -- to enable rightclick menu
@@ -700,7 +738,9 @@ local function StyleFunc(frame, unit)
         frame.Castbar.Text = CreateCastBarText(frame)
         frame.Castbar.PostCastStart = updateCastBar
         frame.ThreatIndicator = createInfoBorderIndicator(frame)
+        frame.ThreatIndicator.PostUpdate = updateThreat
         frame.CombatIndicator = createInfoBorderIndicator(frame)
+        frame.CombatIndicator.PostUpdate = updateCombat
 
         createHealthPrediction(frame)
         CreateHealthText{frame=frame, shadow=true}
