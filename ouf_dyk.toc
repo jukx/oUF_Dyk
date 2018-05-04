@@ -2,7 +2,7 @@
 ## Author: jukx
 ## Notes: Layout for oUF
 ## Title: oUF Dyk
-## Version: 0.1.1
+## Version: 1.0.0
 ## Dependencies: oUF
 
 helpers.lua
