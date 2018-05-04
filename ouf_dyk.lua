@@ -52,18 +52,17 @@ local dykColors = {
 local defaultInfoBorderColor = {100, 100, 100}
 local defaultBorderColor = {0, 0, 0}
 local defaultAggroInfoBorderColor = {255, 0, 0}
-local defaultTargetBarBgColor = {128, 128, 128}
+local defaultTargetBarBgColor = {167, 167, 167}
 local defaultFallbackTargetBarBgColor = {0, 255, 0}
-local defaultTargetBarBgAlpha = 0.8
 local defaultPowerBarTintMultiplier = 0.8 
 local defaultPowerBarBgColor = {0, 0, 0, 0.5}
 local defaultBaseClassPowerColor = {255, 255, 255}  -- it's being colored by class color by oUF
 local defaultClassPowerBarBgColor = {0, 0, 0, 0.5}
 local defaultCastBarColor = {184, 150, 0}
 local defaultCastBarBgColor = {0, 0, 0, 0.5}
-local defaultHealthBarBgGradientColor1 = {255, 0, 0}
-local defaultHealthBarBgGradientColor2 = {226, 209, 124}
-local defaultHealthBarBgAlpha = 0.8
+local defaultHealthBarBgGradientColor1 = {255, 0, 0, 1}
+local defaultHealthBarBgGradientColor2 = {167, 167, 167, 0.4}
+local defaultHealthBarBgAlpha = 0.4
 
 -- End config
 
@@ -296,6 +295,7 @@ end
 
 local function getBarBgColor(unit)
     local color
+
     if UnitPlayerControlled(unit) then
         local _, class = UnitClass(unit) 
         color = oUF.colors.class[class] 
@@ -307,7 +307,7 @@ local function getBarBgColor(unit)
         color = getColor(defaultFallbackTargetBarBgColor)
     end
     
-    color[4] = defaultTargetBarBgAlpha
+    color[4] = defaultHealthBarBgAlpha
 
     return color
 end
@@ -580,15 +580,18 @@ local function updateHealthColor(self, unit, cur, max)
     local bgColor
 
     if unit == 'player' then
-        local perc = cur / max
         local c1 = getColor(defaultHealthBarBgGradientColor1)
         local c2 = getColor(defaultHealthBarBgGradientColor2)
-        bgColor = helpers.addVec(helpers.multVec(c2, perc), helpers.multVec(c1, 1 - perc))  -- TODO describe what this does 
+        local upperLim = 0.8
+        local lowerLim = 0.2
+        local perc = cur / max
+        perc = math.min(upperLim, math.max(lowerLim, perc))
+        local redRatio = 1 - (perc - lowerLim) / (upperLim - lowerLim)
+        bgColor = helpers.addVec(helpers.multVec(c2, 1 - redRatio), helpers.multVec(c1, redRatio))  -- TODO describe what this does 
     else
         bgColor = getBarBgColor(unit)
     end
 
-    bgColor[4] = defaultHealthBarBgAlpha
     self.bg:SetColorTexture(unpack(bgColor))
 end
 
