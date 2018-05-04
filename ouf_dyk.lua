@@ -94,7 +94,7 @@ local function condenseNumber(value)
 end
 
 local function getColor(color)
-    newColor = {}
+    local newColor = {}
     for i=1,3 do
         newColor[i] = color[i]/255
     end
@@ -197,9 +197,9 @@ local function addBorder(frame, thickness, color, texture)
 end
 
 local function addMainBorder(frame, borderColor)
-    border1 = addBorder(frame, 1)
-    border2 = addBorder(border1, 1, borderColor or getColor(defaultInfoBorderColor))
-    border3 = addBorder(border2, 1)
+    local border1 = addBorder(frame, 1)
+    local border2 = addBorder(border1, 1, borderColor or getColor(defaultInfoBorderColor))
+    addBorder(border2, 1)
     frame.InfoBorder = border2
     frame.setInfoBorderColor = function(self, color)
         if not color then color = getColor(defaultInfoBorderColor) end
@@ -227,15 +227,16 @@ local function setInfoBorderColorByThreat(frame)
     end
 end
 
-local function getClassOrReactionColor(unit) 
+local function getClassOrReactionColor(unit)
+    local color
     if UnitPlayerControlled(unit) then
-        local _, class = UnitClass(unit) 
-        color = oUF.colors.class[class] 
+        local _, class = UnitClass(unit)
+        color = oUF.colors.class[class]
     else
-        reaction = UnitReaction(unit, 'player')
-        color = dykColors['reaction'][reaction] or oUF.colors.reaction[reaction] 
-        --color = oUF.colors.reaction[reaction] 
-    end 
+        local reaction = UnitReaction(unit, 'player')
+        color = dykColors['reaction'][reaction] or oUF.colors.reaction[reaction]
+        --color = oUF.colors.reaction[reaction]
+    end
 
     return color
 end
@@ -248,10 +249,7 @@ local function CreateStatusBar(args)
     local drawShadow = args.drawShadow
     local shadowWidth = args.shadowWidth
     local noBorders = args.noBorders
-
-    if not bartex then
-        bartex = defaultBartex
-    end
+    local bartex = defaultBartex
 
     local bar = CreateFrame("StatusBar", nil, frame)
     bar:SetStatusBarTexture(bartex)
@@ -261,7 +259,7 @@ local function CreateStatusBar(args)
         local bg = bar:CreateTexture(nil, "BACKGROUND")
         bg:SetColorTexture(unpack(bgColor))
         bg:SetAllPoints()
-        bar.bg = bg 
+        bar.bg = bg
     end
 
     if not noBorders then
@@ -284,20 +282,14 @@ local function createText(args)
     local outline = args.outline
     local shadow = args.shadow
 
-    textframe = CreateFrame("Frame", nil, frame)
+    local textframe = CreateFrame("Frame", nil, frame)
     textframe:SetAllPoints()
 
-    local text = textframe:CreateFontString(nil, "ARTWORK") --"BORDER", "OVERLAY" 
+    local text = textframe:CreateFontString(nil, "ARTWORK") --"BORDER", "OVERLAY"
     text:SetFont(font or defaultFont, size or 14, outline)
     text:SetJustifyH(align or "LEFT")
 
-    if outline then
-        outline = "THICKOUTLINE"
-    else
-        outline = nil
-    end
-
-    if shadow then 
+    if shadow then
         text:SetShadowOffset(1,-1)
     end
 
@@ -308,26 +300,25 @@ local function getBarBgColor(unit)
     local color
 
     if UnitPlayerControlled(unit) then
-        local _, class = UnitClass(unit) 
-        color = oUF.colors.class[class] 
+        local _, class = UnitClass(unit)
+        color = oUF.colors.class[class]
     else
         color = getColor(defaultTargetBarBgColor)
-    end 
+    end
 
     if not color then
         color = getColor(defaultFallbackTargetBarBgColor)
     end
-    
+
     color[4] = defaultHealthBarBgAlpha
 
     return color
 end
 
 local function getPowerBarColor(unit)
-    local powerToken
     local color = {}
-    powerId, powerToken = UnitPowerType(unit);
-    powerToken = powerToken or 'MANA' 
+    local powerId, powerToken = UnitPowerType(unit);
+    powerToken = powerToken or 'MANA'
     local color_ = dykColors.power[powerToken] or PowerBarColor[powerId]
 
     if not color_ then
@@ -338,7 +329,7 @@ local function getPowerBarColor(unit)
     end
 
     -- change color table from keyed by letter to keyed by index
-    for i, key in pairs({'r', 'g', 'b'}) do 
+    for i, key in pairs({'r', 'g', 'b'}) do
         color[i] = color_[key] * defaultPowerBarTintMultiplier
     end
 
@@ -346,7 +337,7 @@ local function getPowerBarColor(unit)
 end
 
 local function createFloatingFrame(frame)
-    float = CreateFrame("StatusBar", nil, frame)
+    local float = CreateFrame("StatusBar", nil, frame)
     float:SetFrameLevel(float:GetFrameLevel() + 2)
 
     return float
@@ -357,7 +348,7 @@ end
 --
 
 -- Create health statusbar func
-local function CreateHealthBar(frame, unit, height) 
+local function CreateHealthBar(frame, unit)
     local barColor = getColor(defaultBarColor)
     local bgColor = getBarBgColor(unit)
 
@@ -371,7 +362,7 @@ local function CreateHealthBar(frame, unit, height)
 
     health:SetAllPoints()
 
-    return health 
+    return health
 end
 
 local function createHealthPrediction(frame)
@@ -425,8 +416,7 @@ local function CreateHealthText(args)
 
     local text = createText(args)
     text:SetPoint(unpack(anchor))
-    
-    local colorTag = ""
+
     if classColor then
         tag = "[raidcolor]" .. tag
     end
@@ -442,12 +432,10 @@ local function CreateNameText(args)
     local classColor = args.classColor
     args.frame = frame.Health
 
-    local text = createText(args) 
-    text:SetPoint(unpack(anchor)) 
-    
-    local colorTag = ""
+    local text = createText(args)
+    text:SetPoint(unpack(anchor))
+
     if classColor then
-        colorTag = "[raidcolor]"
         tag = "[raidcolor]" .. tag
     end
     frame:Tag(text, tag)
@@ -471,16 +459,10 @@ local function CreatePowerText(frame)
     frame:Tag(text, '[perpp<%]')
 end
 
-local function tablelength(T)
-  local count = 0
-  for _ in pairs(T) do count = count + 1 end
-  return count
-end
-
 -- Create class power statusbar
 local function CreateClassPower(frame, maxClasspower)
-    local classPower = {} 
-    local maxClasspower = maxClasspower or 5  -- make ClassPowerBar 1/5 the width of the Power Bar... is this correct for something else than rogues/locks?  
+    local classPower = {}
+    maxClasspower = maxClasspower or 5  -- make ClassPowerBar 1/5 the width of the Power Bar... is this correct for something else than rogues/locks?
     local singletonWidth = math.floor((powerBarWidth - (maxClasspower - 1)) / maxClasspower)
 
     for index = 1, maxClasspower do -- have to create an extra to force __max to be different from UnitPowerMax
@@ -515,7 +497,7 @@ end
 
 -- Create cast bar
 local function CreateCastBar(frame, unit, drawShadow, noBorders)
-    local drawShadow = drawShadow or true
+    drawShadow = drawShadow or true
     local castbar = CreateStatusBar{frame=frame, color=getColor(defaultCastBarColor), bgColor=getColor(defaultCastBarBgColor), drawShadow=drawShadow or true,
                                     shadowWidth=8, noBorders=noBorders or false}
 
@@ -523,7 +505,7 @@ local function CreateCastBar(frame, unit, drawShadow, noBorders)
         local SafeZone = castbar:CreateTexture(nil, 'OVERLAY')
         castbar.SafeZone = SafeZone
     elseif unit == 'target' then
-        shield = addBorder(castbar, 5, getColor({150, 150, 150}))
+        local shield = addBorder(castbar, 5, getColor({150, 150, 150}))
         castbar.Shield = shield
     end
 
@@ -560,7 +542,7 @@ local function CreateBuffs(args)
     buffspacing = 1
     if anchor2 == 'RIGHT' then
         Buffs:SetPoint("TOPLEFT", frame, "TOPRIGHT", 2, 1)
-        Buffs:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT",  2 + 8*buffsize + 7*buffspacing, 1 -2*buffsize - buffspacing) 
+        Buffs:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT",  2 + 8*buffsize + 7*buffspacing, 1 -2*buffsize - buffspacing)
     else
         Buffs:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", -3, -4)
         Buffs:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT",  -3 + 8*buffsize + 7*buffspacing, -4 - 2*buffsize - buffspacing)
@@ -587,7 +569,7 @@ end
 -- Update functions
 --
 
-local function updateHealthColor(self, unit, cur, max) 
+local function updateHealthColor(self, unit, cur, max)
     local bgColor
 
     if unit == 'player' then
@@ -611,12 +593,12 @@ local function updateHealthColor(self, unit, cur, max)
     self.bg:SetColorTexture(unpack(bgColor))
 end
 
-local function updatePowerColor(self, unit) 
+local function updatePowerColor(self, unit)
     local color = getPowerBarColor(unit)
     self:SetStatusBarColor(unpack(color))
-end 
+end
 
-local function updatePowerBarVisibility(frame) 
+local function updatePowerBarVisibility(frame)
     local unit = 'target'
 
     if not UnitIsDeadOrGhost(unit) and (UnitPlayerControlled(unit) or UnitPowerType(unit) ~= 1) then
@@ -629,7 +611,7 @@ local function updatePowerBarVisibility(frame)
     end
 end
 
-local function updateTargetPower(frame, unit)
+local function updateTargetPower(frame)
     updatePowerBarVisibility(frame:GetParent())
 end
 
@@ -661,7 +643,7 @@ local function updateCastBar(frame, unit, name)
     end
 end
 
-local function updatePartyHealth(frame, unit, cur, max)
+local function updatePartyHealth(frame, unit)
     local color = getClassOrReactionColor(unit)
 
     if color then
@@ -692,11 +674,11 @@ local function targetChangedHandler(frame, event)
 end
 
 -- Create Style
-local function StyleFunc(frame, unit) 
+local function StyleFunc(frame, unit)
 	frame:RegisterForClicks('AnyUp')  -- to enable rightclick menu
 
     if unit == 'player' then
-        addMainBorder(frame) 
+        addMainBorder(frame)
         frame:SetSize(unpack(defaultFrameSize))
 
         frame.Health = CreateHealthBar(frame, unit)
@@ -718,7 +700,7 @@ local function StyleFunc(frame, unit)
         frame.Castbar.Text = CreateCastBarText(frame)
         frame.Castbar.PostCastStart = updateCastBar
         frame.ThreatIndicator = createInfoBorderIndicator(frame)
-        frame.CombatIndicator = createInfoBorderIndicator(frame) 
+        frame.CombatIndicator = createInfoBorderIndicator(frame)
 
         createHealthPrediction(frame)
         CreateHealthText{frame=frame, shadow=true}
@@ -730,10 +712,10 @@ local function StyleFunc(frame, unit)
         elseif (select(2, UnitClass('player')) == 'MONK') then
             frame.Stagger = CreateStaggerBar(frame)
             frame.Stagger.bg.multiplier = 0.5
-        end 
+        end
 
     elseif unit == 'target' then
-        addMainBorder(frame) 
+        addMainBorder(frame)
         frame:SetSize(unpack(defaultFrameSize))
         frame.Health = CreateHealthBar(frame, unit)
         frame.Power = CreatePowerBar(frame, unit)
@@ -755,7 +737,7 @@ local function StyleFunc(frame, unit)
         frame.Castbar.Text = CreateCastBarText(frame)
 
         frame:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE", threatHandler)
-        frame:RegisterEvent("UNIT_THREAT_LIST_UPDATE", threatHandler) 
+        frame:RegisterEvent("UNIT_THREAT_LIST_UPDATE", threatHandler)
 		frame:RegisterEvent('PLAYER_TARGET_CHANGED', threatHandler)
 		frame:RegisterEvent('PLAYER_TARGET_CHANGED', targetChangedHandler)
         frame:RegisterEvent('UNIT_TARGET', targetChangedHandler, unitless)
@@ -809,7 +791,7 @@ local function PartyStyleFunc(frame, unit)
     frame.Health.UpdateColor = updateHealthColor
     frame.Power.UpdateColor = updatePowerColor
     CreateHealthText{frame=frame, anchor={"RIGHT", frame.Health, "RIGHT", -2, -1}, tag='[ >dyk:perhp]'}
-    frame.NameText = CreateNameText{frame=frame, size=12, classColor=true, anchor={"LEFT", frame.Health, "LEFT", 2, 0}} 
+    frame.NameText = CreateNameText{frame=frame, size=12, classColor=true, anchor={"LEFT", frame.Health, "LEFT", 2, 0}}
     frame.Auras = CreateBuffs{frame=frame, buffsize=16, disableMouse=true, anchor='RIGHT'}
 end
 
@@ -820,7 +802,7 @@ local function NamePlateStyleFunc(frame, unit)
     frame.Float = createFloatingFrame(frame)
 
     frame.Health = CreateHealthBar(frame, unit)
-    frame.NameText = CreateNameText{frame=frame, size=defaultNameplateFontSize, align='CENTER', shadow=true, anchor={"CENTER", frame.Health, "TOP", 0, -2}} 
+    frame.NameText = CreateNameText{frame=frame, size=defaultNameplateFontSize, align='CENTER', shadow=true, anchor={"CENTER", frame.Health, "TOP", 0, -2}}
     frame.Auras = CreateBuffs{frame=frame, buffsize=16, disableMouse=true}
     frame.Auras.CustomFilter = auraIconHook
 
@@ -837,7 +819,7 @@ end
 
 -- Register style with oUF
 oUF:RegisterStyle(addonName.."_Style", StyleFunc)
-oUF:RegisterStyle(addonName.."_PartyStyle", NamePlateStyleFunc)
+oUF:RegisterStyle(addonName.."_PartyStyle", PartyStyleFunc)
 oUF:RegisterStyle(addonName.."_NameplateStyle", NamePlateStyleFunc)
 
 -- Set up oUF factory
@@ -871,7 +853,7 @@ oUF:Factory(function(self)
 		]]
 	):SetPoint('TOPLEFT', 10, -10)
 
-    self:SetActiveStyle(addonName.."_NameplateStyle") 
+    self:SetActiveStyle(addonName.."_NameplateStyle")
     local nameplateCvars = {
         nameplateMinAlpha = 0.5,
         nameplateMaxAlpha = 0.8,
