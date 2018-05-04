@@ -629,20 +629,6 @@ end
 local function updateNameplate(frame, event, unit)
     local color = getClassOrReactionColor(unit)
 
-    if unit == 'target' then
-        for _, np in pairs(C_NamePlate.GetNamePlates()) do
-            if np.unitFrame.TargetBorder then
-                np.unitFrame.TargetBorder:Hide()
-            end
-        end
-
-        if frame.TargetBorder then
-            frame.TargetBorder:Show()
-        else
-            frame.TargetBorder = addBorder(frame, 5, {1, 1, 1})
-        end
-    end
-
     if color then
         frame.NameText:SetTextColor(unpack(color))
         color = {color[1], color[2], color[3], 0.4}
