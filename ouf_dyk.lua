@@ -602,7 +602,8 @@ end
 
 local function updatePowerBarVisibility(frame) 
     local unit = 'target'
-    if UnitPlayerControlled(unit) or UnitPowerType(unit) ~= 1 then
+
+    if not UnitIsDeadOrGhost(unit) and (UnitPlayerControlled(unit) or UnitPowerType(unit) ~= 1) then
         local ycoord = frame:GetHeight() - (powerBarHeight + outlineWidth)
         frame.Health:SetPoint('BOTTOMRIGHT', frame, 'TOPRIGHT', 0, -ycoord)
         frame.Power:Show()
@@ -610,6 +611,10 @@ local function updatePowerBarVisibility(frame)
         frame.Health:SetPoint('BOTTOMRIGHT', frame, 'BOTTOMRIGHT')
         frame.Power:Hide()
     end
+end
+
+local function updateTargetPower(frame, unit)
+    updatePowerBarVisibility(frame:GetParent())
 end
 
 local function updateTargetInfoborderColor(frame)
@@ -673,7 +678,6 @@ end
 
 local function targetChangedHandler(frame, event)
     if event == 'PLAYER_TARGET_CHANGED' or event == 'UNIT_TARGET' then
-        updatePowerBarVisibility(frame)
         updateTargetInfoborderColor(frame)
         setInfoBorderColorByThreat(frame)
     end
@@ -725,6 +729,7 @@ local function StyleFunc(frame, unit)
         frame:SetSize(unpack(defaultFrameSize))
         frame.Health = CreateHealthBar(frame, unit)
         frame.Power = CreatePowerBar(frame, unit)
+        frame.Power.PreUpdate = updateTargetPower
         frame.AlternativePower = CreateAlternativePowerBar(frame)
         frame.AlternativePower:SetPoint("TOPRIGHT", frame.Health, "TOPRIGHT", 2, defaultAltPowerBarHeight + padding)
         frame.AlternativePower:SetPoint("BOTTOMLEFT", ouf_dyk_PlayerFrame.Power, "BOTTOMRIGHT", padding , 0)
