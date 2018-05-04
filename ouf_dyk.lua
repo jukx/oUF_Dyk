@@ -580,14 +580,19 @@ local function updateHealthColor(self, unit, cur, max)
     local bgColor
 
     if unit == 'player' then
-        local c1 = getColor(defaultHealthBarBgGradientColor1)
-        local c2 = getColor(defaultHealthBarBgGradientColor2)
-        local upperLim = 0.8
-        local lowerLim = 0.2
-        local perc = cur / max
-        perc = math.min(upperLim, math.max(lowerLim, perc))
-        local redRatio = 1 - (perc - lowerLim) / (upperLim - lowerLim)
-        bgColor = helpers.addVec(helpers.multVec(c2, 1 - redRatio), helpers.multVec(c1, redRatio))  -- TODO describe what this does 
+        if UnitIsDeadOrGhost(unit) then
+            bgColor = getColor(defaultTargetBarBgColor)
+            bgColor[4] = defaultHealthBarBgAlpha
+        else
+            local c1 = getColor(defaultHealthBarBgGradientColor1)
+            local c2 = getColor(defaultHealthBarBgGradientColor2)
+            local upperLim = 0.8
+            local lowerLim = 0.2
+            local perc = cur / max
+            perc = math.min(upperLim, math.max(lowerLim, perc))
+            local redRatio = 1 - (perc - lowerLim) / (upperLim - lowerLim)
+            bgColor = helpers.addVec(helpers.multVec(c2, 1 - redRatio), helpers.multVec(c1, redRatio))  -- TODO describe what this does
+        end
     else
         bgColor = getBarBgColor(unit)
     end
