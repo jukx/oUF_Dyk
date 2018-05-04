@@ -21,13 +21,14 @@ local defaultFont = [[Interface\AddOns\ouf_dyk\fonts\roboto-medium.ttf]]
 local defaultFrameSize = {200, 48}
 local defaultFrameSizeParty = {160, 28}
 local defaultFrameSizePet = {150, 20}
+local defaultFrameSizeBoss = {180, 25}
 local defaultFrameSizeTargetTarget = {120, 25}
 local defaultNameplateFrameSize = {120, 18}
 local padding = 7  -- between frames
 local outlineWidth = 1
 
 local powerBarWidth = 240
-local powerBarHeight = 10 
+local powerBarHeight = 10
 local castbarHeight = 30
 local castbarWidth = 300
 local defaultClassPowerBarHeight = 15
@@ -54,7 +55,7 @@ local defaultBorderColor = {0, 0, 0}
 local defaultAggroInfoBorderColor = {255, 0, 0}
 local defaultTargetBarBgColor = {167, 167, 167}
 local defaultFallbackTargetBarBgColor = {0, 255, 0}
-local defaultPowerBarTintMultiplier = 0.8 
+local defaultPowerBarTintMultiplier = 0.8
 local defaultPowerBarBgColor = {0, 0, 0, 0.5}
 local defaultBaseClassPowerColor = {255, 255, 255}  -- it's being colored by class color by oUF
 local defaultClassPowerBarBgColor = {0, 0, 0, 0.5}
@@ -63,6 +64,7 @@ local defaultCastBarBgColor = {0, 0, 0, 0.5}
 local defaultHealthBarBgGradientColor1 = {255, 0, 0, 1}
 local defaultHealthBarBgGradientColor2 = {167, 167, 167, 0.4}
 local defaultHealthBarBgAlpha = 0.4
+local defaultEliteColor = {255, 215, 0}
 
 -- End config
 
@@ -91,19 +93,29 @@ local function condenseNumber(value)
 	end
 end
 
+local function getColor(color)
+    newColor = {}
+    for i=1,3 do
+        newColor[i] = color[i]/255
+    end
+    if color[4] then newColor[4] = color[4] end  -- alpha channel
+
+    return newColor
+end
+
 local function registerTag(tagname, events, func)
     oUF.Tags.Methods[tagname] = func
     oUF.Tags.Events[tagname] = events
 end
 
-registerTag('dyk:status',  
+registerTag('dyk:status',
             'UNIT_HEALTH PLAYER_UPDATE_RESTING UNIT_CONNECTION',
             function(unit)
                 return getStatus(unit)
             end
     )
 
-registerTag('dyk:perhp',  
+registerTag('dyk:perhp',
             'UNIT_HEALTH_FREQUENT UNIT_MAXHEALTH',
             function(unit)
                 if getStatus(unit) then return end
@@ -115,7 +127,7 @@ registerTag('dyk:perhp',
             end
     )
 
-registerTag('dyk:maxhp',  
+registerTag('dyk:maxhp',
             'UNIT_HEALTH_FREQUENT UNIT_MAXHEALTH',
             function(unit)
                 if getStatus(unit) then return end
@@ -126,7 +138,7 @@ registerTag('dyk:maxhp',
             end
     )
 
-registerTag('dyk:curhp',  
+registerTag('dyk:curhp',
             'UNIT_HEALTH_FREQUENT UNIT_MAXHEALTH',
             function(unit)
                 if getStatus(unit) then return end
@@ -137,33 +149,32 @@ registerTag('dyk:curhp',
             end
     )
 
-registerTag('dyk:shortname',  
+registerTag('dyk:shortname',
             'UNIT_NAME_UPDATE',
             function(unit, r)
                 local name = UnitName(r or unit)
                 if #name > 8 then
                     name = name:sub(0, 7) .. '...'
-                end 
+                end
                 return name
             end
     )
 
+registerTag('dyk:elitecolor',
+            'UNIT_NAME_UPDATE',
+            function(unit)
+                local class = UnitClassification(unit)
+                if class == 'elite' then
+                    return Hex(getColor(defaultEliteColor))
+                end
+            end
+    )
 
 --
 -- Functions
 --
 
 -- Style functions
-
-local function getColor(color)
-    newColor = {}
-    for i=1,3 do
-        newColor[i] = color[i]/255 
-    end
-    if color[4] then newColor[4] = color[4] end  -- alpha channel
-
-    return newColor
-end
 
 local function addBorder(frame, thickness, color, texture)
     color = color or getColor(defaultBorderColor)
@@ -187,7 +198,7 @@ end
 
 local function addMainBorder(frame, borderColor)
     border1 = addBorder(frame, 1)
-    border2 = addBorder(border1, 1, borderColor or getColor(defaultInfoBorderColor)) 
+    border2 = addBorder(border1, 1, borderColor or getColor(defaultInfoBorderColor))
     border3 = addBorder(border2, 1)
     frame.InfoBorder = border2
     frame.setInfoBorderColor = function(self, color)
@@ -210,7 +221,7 @@ local function addInnerShadow(frame, width)
     return shadow
 end
 
-local function setInfoBorderColorByThreat(frame) 
+local function setInfoBorderColorByThreat(frame)
     if UnitDetailedThreatSituation("player", frame.unit) then
         frame:setInfoBorderColor(getColor(defaultAggroInfoBorderColor))
     end
@@ -254,7 +265,7 @@ local function CreateStatusBar(args)
     end
 
     if not noBorders then
-        addBorder(bar, outlineWidth, borderColor)  -- add outline to any statusbar
+        frame.BaseBorder = addBorder(bar, outlineWidth, borderColor)  -- add outline to any statusbar
     end
 
     if drawShadow then
@@ -659,6 +670,12 @@ local function updatePartyHealth(frame, unit, cur, max)
     end
 end
 
+local function auraIconHook(frame, unit, button)
+    if not (button.isDebuff and not button.isPlayer) then
+        return true
+    end
+end
+
 --
 -- Event handlers
 --
@@ -729,7 +746,7 @@ local function StyleFunc(frame, unit)
         frame.Health.UpdateColor = updateHealthColor
         frame.Power.UpdateColor = updatePowerColor
         CreateHealthText{frame=frame, shadow=true}
-        CreateNameText{frame=frame, shadow=true}
+        CreateNameText{frame=frame, shadow=true, tag='[dyk:elitecolor][name]'}
         frame.Auras = CreateBuffs{frame=frame}
 
         frame.Castbar = CreateCastBar(frame, unit)
@@ -765,7 +782,17 @@ local function StyleFunc(frame, unit)
 
         frame.Health.UpdateColor = updateHealthColor
         CreateHealthText{frame=frame, size=12, shadow=true, anchor={"RIGHT", frame.Health, "RIGHT", -2, 0}, tag='[ >dyk:perhp]'}
-        frame.NameText = CreateNameText{frame=frame, size=12, shadow=true, anchor={"LEFT", frame.Health, "LEFT", 2, 0}}
+        frame.NameText = CreateNameText{frame=frame, size=12, shadow=true, anchor={"LEFT", frame.Health, "LEFT", 2, 0}, tag='[dyk:elitecolor][name]'}
+	end
+
+	if unit:sub(1, 4) == 'boss' then
+        frame:SetSize(unpack(defaultFrameSizeBoss))
+        frame.Health = CreateHealthBar(frame, unit)
+        frame.Health:SetAllPoints()
+
+        frame.Health.UpdateColor = updateHealthColor
+        CreateHealthText{frame=frame, size=12, shadow=true, anchor={"RIGHT", frame.Health, "RIGHT", -2, 0}, tag='[ >dyk:perhp]'}
+        frame.NameText = CreateNameText{frame=frame, size=12, shadow=true, anchor={"LEFT", frame.Health, "LEFT", 2, 0}, tag='[dyk:elitecolor][name]'}
 	end
 end
 
@@ -787,7 +814,7 @@ local function PartyStyleFunc(frame, unit)
 end
 
 local function NamePlateStyleFunc(frame, unit)
-    frame:SetSize(unpack(defaultNameplateFrameSize));
+    frame:SetSize(unpack(defaultNameplateFrameSize))
     frame:SetPoint('CENTER')
     frame.unittype = 'nameplate'
     frame.Float = createFloatingFrame(frame)
@@ -795,6 +822,7 @@ local function NamePlateStyleFunc(frame, unit)
     frame.Health = CreateHealthBar(frame, unit)
     frame.NameText = CreateNameText{frame=frame, size=defaultNameplateFontSize, align='CENTER', shadow=true, anchor={"CENTER", frame.Health, "TOP", 0, -2}} 
     frame.Auras = CreateBuffs{frame=frame, buffsize=16, disableMouse=true}
+    frame.Auras.CustomFilter = auraIconHook
 
     local RaidIcon = frame.Float:CreateTexture(nil, 'OVERLAY')
     RaidIcon:SetPoint('CENTER', frame, 'RIGHT', 0, 0)
@@ -814,13 +842,23 @@ oUF:RegisterStyle(addonName.."_NameplateStyle", NamePlateStyleFunc)
 
 -- Set up oUF factory
 oUF:Factory(function(self)
-    self:SetActiveStyle(addonName.."_Style") 
-    playerFrame = self:Spawn("player", "ouf_dyk_PlayerFrame"):SetPoint("TOPRIGHT", nil, "CENTER", coordMainHealthX, coordMainHealthY) 
+    self:SetActiveStyle(addonName.."_Style")
+    self:Spawn("player", "ouf_dyk_PlayerFrame"):SetPoint("TOPRIGHT", nil, "CENTER", coordMainHealthX, coordMainHealthY)
     self:Spawn("target", "ouf_dyk_TargetFrame"):SetPoint("TOPLEFT", nil, "CENTER", -coordMainHealthX, coordMainHealthY)
     self:Spawn("targettarget", "ouf_dyk_TargetFrame")
     self:Spawn("pet", "ouf_dyk_PetFrame")
 
-    self:SetActiveStyle(addonName.."_PartyStyle") 
+    for i = 1, 5 do
+		local boss = self:Spawn('boss' .. i, "ouf_dyk_BossFrame" .. i)
+
+		if i == 1 then
+			boss:SetPoint('TOPRIGHT', nil, 'TOPRIGHT', -300, -220)
+		else
+			boss:SetPoint('TOP', _G['ouf_dyk_BossFrame' .. i - 1], 'BOTTOM', 0, -6)
+		end
+	end
+
+    self:SetActiveStyle(addonName.."_PartyStyle")
 	self:SpawnHeader(nil, nil, 'custom [group:party] show; [@raid3,exists] show; [@raid26,exists] hide; hide',
 		'showParty', true,
 		'showRaid', true,
